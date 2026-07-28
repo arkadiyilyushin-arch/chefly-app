@@ -4,6 +4,12 @@ Mobile social network for professional chefs, home cooks, and food lovers.
 
 Share recipes, follow kitchen news, discuss on the forum, and message fellow cooks.
 
+## Download APK
+
+**[Chefly-1.0.0.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.0/Chefly-1.0.0.apk)**
+
+Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.0) page.
+
 ## Features
 
 - **Home feed** — stories + recipe/video posts
@@ -15,6 +21,7 @@ Share recipes, follow kitchen news, discuss on the forum, and message fellow coo
 ## Run
 
 ```bash
+npm install
 npm start
 ```
 
