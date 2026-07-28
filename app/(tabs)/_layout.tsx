@@ -9,11 +9,11 @@ export default function TabLayout() {
         headerShown: false,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="forum" options={{ title: 'Forum' }} />
-      <Tabs.Screen name="messages" options={{ title: 'Messages' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      <Tabs.Screen name="create" options={{ title: 'Create' }} />
+      <Tabs.Screen name="index" options={{ title: 'Лента' }} />
+      <Tabs.Screen name="news" options={{ title: 'Новости' }} />
+      <Tabs.Screen name="messages" options={{ title: 'Сообщения' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Профиль' }} />
+      <Tabs.Screen name="create" options={{ title: 'Создать' }} />
     </Tabs>
   );
 }

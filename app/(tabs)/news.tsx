@@ -1,33 +1,26 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ForumCard } from '@/components/ForumCard';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { forumTopics } from '@/data/mockData';
 import { useState } from 'react';
+import { NewsCard } from '@/components/NewsCard';
+import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { newsItems } from '@/data/mockData';
 
-const FILTERS = ['All', 'News', 'Recipes', 'Tips', 'Gear', 'Baking'];
+const FILTERS = ['Все', 'Рестораны', 'Тренды', 'События', 'Рецепты', 'Рынок', 'Технологии'];
 
-export default function ForumScreen() {
+export default function NewsScreen() {
   const insets = useSafeAreaInsets();
-  const [active, setActive] = useState('All');
+  const [active, setActive] = useState('Все');
 
   const filtered =
-    active === 'All'
-      ? forumTopics
-      : forumTopics.filter((t) => t.category === active);
+    active === 'Все' ? newsItems : newsItems.filter((n) => n.category === active);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Forum</Text>
-        <Pressable style={styles.newBtn}>
-          <Ionicons name="add" size={18} color="#fff" />
-          <Text style={styles.newBtnText}>Topic</Text>
-        </Pressable>
+        <Text style={styles.title}>Новости</Text>
       </View>
 
-      <Text style={styles.subtitle}>News, recipes & kitchen talk</Text>
+      <Text style={styles.subtitle}>События, тренды и кухонные новости</Text>
 
       <FlatList
         horizontal
@@ -56,7 +49,7 @@ export default function ForumScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <ForumCard topic={item} />}
+        renderItem={({ item }) => <NewsCard item={item} />}
       />
     </View>
   );
@@ -87,20 +80,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginTop: 4,
     marginBottom: Spacing.md,
-  },
-  newBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: Radius.full,
-  },
-  newBtnText: {
-    fontFamily: Fonts.semibold,
-    fontSize: 13,
-    color: '#fff',
   },
   filtersList: {
     flexGrow: 0,

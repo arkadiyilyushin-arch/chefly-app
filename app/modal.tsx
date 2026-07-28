@@ -7,8 +7,8 @@ export default function ModalScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Chefly</Text>
       <Text style={styles.body}>
-        A social network for chefs, home cooks, and everyone who loves the kitchen.
-        Share recipes, follow news, join the forum, and chat with fellow food lovers.
+        Соцсеть для профессиональных поваров, домашних кулинаров и всех, кто любит кухню.
+        Делитесь рецептами, читайте новости и общайтесь с единомышленниками.
       </Text>
       <StatusBar style="dark" />
     </View>

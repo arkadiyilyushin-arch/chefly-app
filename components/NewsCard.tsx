@@ -1,44 +1,48 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from './Avatar';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import type { ForumTopic } from '@/data/mockData';
+import type { NewsItem } from '@/data/mockData';
 
 type Props = {
-  topic: ForumTopic;
+  item: NewsItem;
 };
 
-export function ForumCard({ topic }: Props) {
+export function NewsCard({ item }: Props) {
   return (
     <Pressable style={styles.card}>
-      <View style={styles.top}>
-        <View style={styles.categoryPill}>
-          <Text style={styles.category}>{topic.category}</Text>
-        </View>
-        {topic.pinned && (
-          <View style={styles.pinned}>
-            <Ionicons name="pin" size={12} color={Colors.primary} />
-            <Text style={styles.pinnedText}>Pinned</Text>
+      {item.image ? (
+        <Image source={{ uri: item.image }} style={styles.cover} />
+      ) : null}
+
+      <View style={styles.body}>
+        <View style={styles.top}>
+          <View style={styles.categoryPill}>
+            <Text style={styles.category}>{item.category}</Text>
           </View>
-        )}
-      </View>
-
-      <Text style={styles.title}>{topic.title}</Text>
-      <Text style={styles.excerpt} numberOfLines={2}>
-        {topic.excerpt}
-      </Text>
-
-      <View style={styles.footer}>
-        <View style={styles.author}>
-          <Avatar uri={topic.avatar} size={28} />
-          <Text style={styles.authorName}>{topic.author}</Text>
+          {item.pinned && (
+            <View style={styles.pinned}>
+              <Ionicons name="flash" size={12} color={Colors.primary} />
+              <Text style={styles.pinnedText}>Важно</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.meta}>
-          <Ionicons name="chatbubble-outline" size={13} color={Colors.textSecondary} />
-          <Text style={styles.metaText}>{topic.replies}</Text>
-          <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} style={{ marginLeft: 8 }} />
-          <Text style={styles.metaText}>{topic.views}</Text>
-          <Text style={[styles.metaText, { marginLeft: 8 }]}>{topic.timeAgo}</Text>
+
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.excerpt} numberOfLines={2}>
+          {item.excerpt}
+        </Text>
+
+        <View style={styles.footer}>
+          <View style={styles.author}>
+            <Avatar uri={item.avatar} size={28} />
+            <Text style={styles.authorName}>{item.author}</Text>
+          </View>
+          <View style={styles.meta}>
+            <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.metaText}>{item.views}</Text>
+            <Text style={[styles.metaText, { marginLeft: 8 }]}>{item.timeAgo}</Text>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -49,13 +53,21 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
+  },
+  cover: {
+    width: '100%',
+    height: 140,
+    backgroundColor: Colors.border,
+  },
+  body: {
+    padding: Spacing.lg,
   },
   top: {
     flexDirection: 'row',
@@ -73,8 +85,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semibold,
     fontSize: 11,
     color: Colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   pinned: {
     flexDirection: 'row',
@@ -109,11 +120,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
   },
   authorName: {
     fontFamily: Fonts.medium,
     fontSize: 12,
     color: Colors.text,
+    flexShrink: 1,
   },
   meta: {
     flexDirection: 'row',

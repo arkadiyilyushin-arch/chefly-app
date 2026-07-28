@@ -6,17 +6,17 @@ Share recipes, follow kitchen news, discuss on the forum, and message fellow coo
 
 ## Download APK
 
-**[Chefly-1.0.0.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.0/Chefly-1.0.0.apk)**
+**[Chefly-1.0.1.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.1/Chefly-1.0.1.apk)**
 
-Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.0) page.
+Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.1) page.
 
 ## Features
 
-- **Home feed** — stories + recipe/video posts
-- **Forum** — news and discussions by category
-- **Messages** — chats with cooks and circles
-- **Profile** — stats, bio, media grid
-- **Create** — post recipes, photos, videos, or forum topics
+- **Лента** — сторис и посты с рецептами/видео
+- **Новости** — события, тренды и кухонные новости
+- **Сообщения** — чаты с поварами и кружками
+- **Профиль** — статистика, био, сетка медиа
+- **Создать** — рецепт, фото или видео
 
 ## Run
 

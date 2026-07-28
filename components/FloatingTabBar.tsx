@@ -24,7 +24,7 @@ type TabBarProps = {
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   index: 'home',
-  forum: 'newspaper-outline',
+  news: 'newspaper-outline',
   messages: 'paper-plane-outline',
   profile: 'person-outline',
   create: 'add',
@@ -32,7 +32,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 const ACTIVE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   index: 'home',
-  forum: 'newspaper',
+  news: 'newspaper',
   messages: 'paper-plane',
   profile: 'person',
   create: 'add',

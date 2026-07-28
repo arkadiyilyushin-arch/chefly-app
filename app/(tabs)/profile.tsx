@@ -19,10 +19,10 @@ export default function ProfileScreen() {
   const [following, setFollowing] = useState(false);
 
   const stats = [
-    { label: 'Post', value: currentUser.posts },
-    { label: 'Followers', value: currentUser.followers },
-    { label: 'Following', value: currentUser.following },
-    { label: 'Likes', value: currentUser.likes },
+    { label: 'Посты', value: currentUser.posts },
+    { label: 'Подписчики', value: currentUser.followers },
+    { label: 'Подписки', value: currentUser.following },
+    { label: 'Лайки', value: currentUser.likes },
   ];
 
   return (
@@ -42,7 +42,7 @@ export default function ProfileScreen() {
             onPress={() => setFollowing((v) => !v)}
           >
             <Text style={[styles.followText, following && styles.followingText]}>
-              {following ? 'Following' : 'Follow'}
+              {following ? 'Вы подписаны' : 'Подписаться'}
             </Text>
           </Pressable>
           <Pressable hitSlop={10}>

@@ -20,17 +20,17 @@ export type FeedPost = {
   liked?: boolean;
 };
 
-export type ForumTopic = {
+export type NewsItem = {
   id: string;
   title: string;
   category: string;
   author: string;
   avatar: string;
-  replies: number;
   views: string;
   timeAgo: string;
   excerpt: string;
   pinned?: boolean;
+  image?: string;
 };
 
 export type Message = {
@@ -54,37 +54,37 @@ export type ProfileMedia = {
 export const stories: Story[] = [
   {
     id: 'me',
-    name: 'Me',
+    name: 'Я',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
     isMe: true,
   },
   {
     id: '1',
-    name: 'Cindy',
+    name: 'Синди',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
     hasNew: true,
   },
   {
     id: '2',
-    name: 'Abdullah',
+    name: 'Абдулла',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
     hasNew: true,
   },
   {
     id: '3',
-    name: 'Maya',
+    name: 'Майя',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
     hasNew: true,
   },
   {
     id: '4',
-    name: 'Kenji',
+    name: 'Кенджи',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
     hasNew: true,
   },
   {
     id: '5',
-    name: 'Sofia',
+    name: 'София',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
   },
 ];
@@ -92,10 +92,10 @@ export const stories: Story[] = [
 export const feedPosts: FeedPost[] = [
   {
     id: '1',
-    author: 'Dolapo Abdul',
+    author: 'Долапо Абдул',
     avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
-    timeAgo: '1h ago',
-    text: 'Forest mushroom risotto with aged parmesan and fresh thyme. Slow-cooked for that creamy restaurant texture — recipe in comments.',
+    timeAgo: '1ч назад',
+    text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры — рецепт в комментариях.',
     image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
     isVideo: true,
     likes: '26K',
@@ -105,10 +105,10 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '2',
-    author: 'Elena Rossi',
+    author: 'Елена Росси',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
-    timeAgo: '3h ago',
-    text: 'Sunday sourdough bake 🍞 72% hydration, 18h cold proof. The crumb on this one made my whole week.',
+    timeAgo: '3ч назад',
+    text: 'Воскресная выпечка на закваске 🍞 Гидратация 72%, холодный брожение 18 часов. Мякиш получился идеальный.',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=600&fit=crop',
     likes: '18.4K',
     comments: '842',
@@ -116,10 +116,10 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '3',
-    author: 'Chef Marco',
+    author: 'Шеф Марко',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
-    timeAgo: '5h ago',
-    text: 'Seared scallops with lemon beurre blanc and microgreens. 90 seconds per side — no more, no less.',
+    timeAgo: '5ч назад',
+    text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны — ни больше, ни меньше.',
     image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=600&fit=crop',
     isVideo: true,
     likes: '41K',
@@ -129,10 +129,10 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '4',
-    author: 'Aisha Khan',
+    author: 'Аиша Хан',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
-    timeAgo: '8h ago',
-    text: 'Homemade pasta night! Fresh tagliatelle with wild garlic pesto and toasted pine nuts. Who else makes pasta from scratch?',
+    timeAgo: '8ч назад',
+    text: 'Вечер домашней пасты! Свежая тальятелле с песто из черемши и кедровыми орехами. Кто ещё делает пасту сам?',
     image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=600&fit=crop',
     likes: '9.2K',
     comments: '534',
@@ -140,132 +140,133 @@ export const feedPosts: FeedPost[] = [
   },
 ];
 
-export const forumTopics: ForumTopic[] = [
+export const newsItems: NewsItem[] = [
   {
     id: '1',
-    title: 'Best knives under $100 for home cooks?',
-    category: 'Gear',
-    author: 'Tom Baker',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
-    replies: 48,
-    views: '3.2K',
-    timeAgo: '12m',
-    excerpt: 'Looking for a solid chef knife that can handle daily prep without breaking the bank…',
+    title: 'В Москве открылся новый ресторан с авторской кухней',
+    category: 'Рестораны',
+    author: 'Chefly Новости',
+    avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200&h=200&fit=crop',
+    views: '12K',
+    timeAgo: '12 мин',
+    excerpt:
+      'Шеф из Мишленовского ресторана запускает камерное пространство на 40 мест в центре столицы.',
     pinned: true,
+    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=500&fit=crop',
   },
   {
     id: '2',
-    title: 'How do you keep herbs fresh for a week?',
-    category: 'Tips',
-    author: 'Nina Park',
+    title: 'Тренд сезона: ферментированные овощи на каждом столе',
+    category: 'Тренды',
+    author: 'Анна Кулинарова',
     avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop',
-    replies: 127,
     views: '8.1K',
-    timeAgo: '1h',
-    excerpt: 'Cilantro and basil always wilt on me. Share your storage hacks!',
+    timeAgo: '1ч',
+    excerpt:
+      'Кимчи, квашеная капуста и маринованные томаты возвращаются в меню топ-заведений и дома.',
   },
   {
     id: '3',
-    title: 'Michelin techniques you use at home',
-    category: 'Techniques',
-    author: 'Chef Luis',
+    title: 'Конкурс молодых поваров: приём заявок до конца месяца',
+    category: 'События',
+    author: 'Редакция Chefly',
     avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop',
-    replies: 89,
-    views: '12K',
-    timeAgo: '3h',
-    excerpt: 'Sous-vide, confit, emulsion — which pro methods actually make sense in a home kitchen?',
+    views: '5.4K',
+    timeAgo: '3ч',
+    excerpt:
+      'Победители получат стажировку у шефов и грант на открытие собственного проекта.',
+    pinned: true,
   },
   {
     id: '4',
-    title: 'Vegan desserts that impress meat-eaters',
-    category: 'Recipes',
-    author: 'Priya S.',
-    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop',
-    replies: 64,
-    views: '5.4K',
-    timeAgo: '5h',
-    excerpt: 'Need showstoppers for a mixed dietary dinner party this weekend.',
+    title: 'Как изменились цены на продукты для ресторанов в 2026',
+    category: 'Рынок',
+    author: 'Игорь Смирнов',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
+    views: '9.2K',
+    timeAgo: '5ч',
+    excerpt:
+      'Разбор ключевых позиций: масло, рыба, сыры и зелень. Что подорожало сильнее всего.',
   },
   {
     id: '5',
-    title: 'Sourdough starter dying — help!',
-    category: 'Baking',
-    author: 'Jake M.',
-    avatar: 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=200&h=200&fit=crop',
-    replies: 33,
-    views: '2.8K',
-    timeAgo: '7h',
-    excerpt: 'Fed it rye flour twice and it still smells off. Rescue plan anyone?',
+    title: 'Новый гайд: 10 блюд, которые стоит попробовать этой весной',
+    category: 'Рецепты',
+    author: 'Мария Печёнова',
+    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop',
+    views: '15K',
+    timeAgo: '7ч',
+    excerpt:
+      'От лёгких салатов до сезонных десертов — подборка от шефов-редакторов Chefly.',
   },
   {
     id: '6',
-    title: 'Restaurant openings this month 🍽️',
-    category: 'News',
-    author: 'Chefly News',
+    title: 'FoodTech: доставка ингредиентов для домашнего ресторана',
+    category: 'Технологии',
+    author: 'Chefly Новости',
     avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200&h=200&fit=crop',
-    replies: 21,
     views: '4.9K',
-    timeAgo: '1d',
-    excerpt: 'Roundup of new spots worth checking out — from tasting menus to casual ramen bars.',
-    pinned: true,
+    timeAgo: '1д',
+    excerpt:
+      'Стартапы предлагают наборы под конкретные рецепты с точной граммовкой и инструкцией.',
   },
 ];
 
 export const messages: Message[] = [
   {
     id: '1',
-    name: 'Elena Rossi',
+    name: 'Елена Росси',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
-    lastMessage: 'Thanks for the sourdough tip! 🙌',
-    timeAgo: '2m',
+    lastMessage: 'Спасибо за совет по закваске! 🙌',
+    timeAgo: '2 мин',
     unread: 2,
     online: true,
   },
   {
     id: '2',
-    name: 'Chef Marco',
+    name: 'Шеф Марко',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
-    lastMessage: 'Want to collab on a pasta video?',
-    timeAgo: '18m',
+    lastMessage: 'Давай снимем совместное видео про пасту?',
+    timeAgo: '18 мин',
     unread: 1,
     online: true,
   },
   {
     id: '3',
-    name: 'Aisha Khan',
+    name: 'Аиша Хан',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
-    lastMessage: 'Sending you that pesto recipe now',
-    timeAgo: '1h',
+    lastMessage: 'Сейчас пришлю рецепт песто',
+    timeAgo: '1ч',
     online: false,
   },
   {
     id: '4',
-    name: 'Baking Circle',
+    name: 'Кружок выпечки',
     avatar: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=200&h=200&fit=crop',
-    lastMessage: 'Maya: Who\'s joining the challenge?',
-    timeAgo: '3h',
+    lastMessage: 'Майя: Кто идёт на челлендж?',
+    timeAgo: '3ч',
     unread: 5,
   },
   {
     id: '5',
-    name: 'Kenji Tanaka',
+    name: 'Кенджи Танака',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-    lastMessage: 'The ramen broth needs 12 more hours',
-    timeAgo: 'Yesterday',
+    lastMessage: 'Булёну для рамена нужно ещё 12 часов',
+    timeAgo: 'Вчера',
   },
   {
     id: '6',
-    name: 'Sofia Mendes',
+    name: 'София Мендес',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
-    lastMessage: 'Loved your risotto post ❤️',
-    timeAgo: 'Yesterday',
+    lastMessage: 'Обожаю твой пост с ризотто ❤️',
+    timeAgo: 'Вчера',
   },
 ];
 
 export const currentUser = {
-  name: 'Rokeeb Abdul',
+  name: 'Рокиб Абдул',
   email: 'rokeeb@chefly.app',
-  bio: 'Lifestyle creator / Lifelong home dasher.',
+  bio: 'Лайфстайл-креатор / Вечный домашний повар.',
   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
   posts: '400',
   followers: '136.7K',

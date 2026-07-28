@@ -48,7 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="modal"
-          options={{ presentation: 'modal', headerShown: true, title: 'About Chefly' }}
+          options={{ presentation: 'modal', headerShown: true, title: 'О Chefly' }}
         />
       </Stack>
     </>

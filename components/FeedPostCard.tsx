@@ -40,7 +40,7 @@ export function FeedPostCard({ post }: Props) {
         {preview}
         {long && (
           <Text style={styles.more} onPress={() => setExpanded((v) => !v)}>
-            {expanded ? ' Less' : ' More'}
+            {expanded ? ' Скрыть' : ' Ещё'}
           </Text>
         )}
       </Text>

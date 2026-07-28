@@ -11,7 +11,7 @@ export default function MessagesScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.title}>Сообщения</Text>
         <Pressable style={styles.compose}>
           <Ionicons name="create-outline" size={22} color={Colors.text} />
         </Pressable>
@@ -20,7 +20,7 @@ export default function MessagesScreen() {
       <View style={styles.search}>
         <Ionicons name="search" size={18} color={Colors.textMuted} />
         <TextInput
-          placeholder="Search chats"
+          placeholder="Поиск чатов"
           placeholderTextColor={Colors.textMuted}
           style={styles.searchInput}
         />

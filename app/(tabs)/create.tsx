@@ -5,10 +5,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 
 const OPTIONS = [
-  { icon: 'restaurant-outline' as const, title: 'Recipe', desc: 'Share a dish with steps & tips' },
-  { icon: 'videocam-outline' as const, title: 'Cooking video', desc: 'Film a quick cook-along' },
-  { icon: 'camera-outline' as const, title: 'Photo', desc: 'Post a plated moment' },
-  { icon: 'chatbubbles-outline' as const, title: 'Forum topic', desc: 'Start a kitchen discussion' },
+  {
+    icon: 'restaurant-outline' as const,
+    title: 'Рецепт',
+    desc: 'Поделиться блюдом с шагами и советами',
+  },
+  {
+    icon: 'videocam-outline' as const,
+    title: 'Видео готовки',
+    desc: 'Снять короткий кулинарный ролик',
+  },
+  {
+    icon: 'camera-outline' as const,
+    title: 'Фото',
+    desc: 'Опубликовать красивую подачу',
+  },
 ];
 
 export default function CreateScreen() {
@@ -21,14 +32,14 @@ export default function CreateScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
-        <Text style={styles.title}>Create</Text>
+        <Text style={styles.title}>Создать</Text>
         <Pressable style={styles.postBtn}>
-          <Text style={styles.postText}>Post</Text>
+          <Text style={styles.postText}>Опубликовать</Text>
         </Pressable>
       </View>
 
       <TextInput
-        placeholder="What are you cooking today?"
+        placeholder="Что вы готовите сегодня?"
         placeholderTextColor={Colors.textMuted}
         multiline
         style={styles.input}
