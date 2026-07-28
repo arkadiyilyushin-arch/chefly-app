@@ -1,10 +1,10 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPostCard } from '@/components/FeedPostCard';
 import { Logo } from '@/components/Logo';
 import { StoriesRow } from '@/components/StoriesRow';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { feedPosts, stories } from '@/data/mockData';
 
 export default function HomeScreen() {
@@ -13,10 +13,7 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View style={styles.brand}>
-          <Logo size={34} />
-          <Text style={styles.brandName}>Chefly</Text>
-        </View>
+        <Logo size={44} />
         <View style={styles.headerActions}>
           <Pressable style={styles.iconBtn} hitSlop={8}>
             <Ionicons name="search" size={22} color={Colors.text} />
@@ -51,17 +48,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-  },
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandName: {
-    fontFamily: Fonts.bold,
-    fontSize: 22,
-    color: Colors.text,
-    letterSpacing: -0.4,
   },
   headerActions: {
     flexDirection: 'row',

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chefly",
     "slug": "chefly",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "chefly",
@@ -13,14 +13,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#4B9EFF",
+        "backgroundColor": "#2B95FF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "app.chefly.mobile",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "bundler": "metro",
@@ -34,7 +34,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#2B95FF"
         }
       ]
     ],
