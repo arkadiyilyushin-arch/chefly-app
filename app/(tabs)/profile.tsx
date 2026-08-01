@@ -7,32 +7,34 @@ import { Avatar } from '@/components/Avatar';
 import { MediaGrid } from '@/components/MediaGrid';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
+import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { profileMedia } from '@/data/mockData';
 
 const TABS = [
   { key: 'grid', icon: 'grid-outline' as const, active: 'grid' as const },
+  { key: 'saved', icon: 'bookmark-outline' as const, active: 'bookmark' as const },
   { key: 'reels', icon: 'play-circle-outline' as const, active: 'play-circle' as const },
-  { key: 'tagged', icon: 'pricetag-outline' as const, active: 'pricetag' as const },
 ];
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { posts } = useFeed();
+  const { followingIds, savedPostIds } = useSocial();
   const router = useRouter();
-  const [tab, setTab] = useState('reels');
+  const [tab, setTab] = useState('grid');
 
   const myPostsCount = useMemo(
-    () => posts.filter((p) => p.author === user?.name).length,
-    [posts, user?.name]
+    () => posts.filter((p) => p.author === user?.name || p.authorId === user?.id).length,
+    [posts, user?.name, user?.id]
   );
 
   const stats = [
     { label: 'Посты', value: String(myPostsCount || 0) },
-    { label: 'Подписчики', value: '0' },
-    { label: 'Подписки', value: '0' },
-    { label: 'Лайки', value: '0' },
+    { label: 'Избранное', value: String(savedPostIds.length) },
+    { label: 'Подписки', value: String(followingIds.length) },
+    { label: 'Лайки', value: String(posts.filter((p) => p.liked).length) },
   ];
 
   function onLogout() {
@@ -83,7 +85,17 @@ export default function ProfileScreen() {
           {TABS.map((t) => {
             const active = tab === t.key;
             return (
-              <Pressable key={t.key} style={styles.tab} onPress={() => setTab(t.key)}>
+              <Pressable
+                key={t.key}
+                style={styles.tab}
+                onPress={() => {
+                  if (t.key === 'saved') {
+                    router.push('/favorites' as any);
+                    return;
+                  }
+                  setTab(t.key);
+                }}
+              >
                 <Ionicons
                   name={active ? t.active : t.icon}
                   size={24}

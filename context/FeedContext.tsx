@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { feedPosts as seedPosts, type FeedPost, type PostComment } from '@/data/mockData';
+import { useSocial } from '@/context/SocialContext';
 
-const POSTS_KEY = 'chefly.posts.v2';
-const STATE_KEY = 'chefly.feedState.v2';
+const POSTS_KEY = 'chefly.posts.v3';
+const STATE_KEY = 'chefly.feedState.v3';
 
 type FeedState = {
-  /** Override liked flag by post id */
   liked: Record<string, boolean>;
   hiddenIds: string[];
   likeDeltas: Record<string, number>;
@@ -14,22 +14,23 @@ type FeedState = {
   extraComments: Record<string, PostComment[]>;
 };
 
+type NewPostInput = Omit<
+  FeedPost,
+  | 'id'
+  | 'likesCount'
+  | 'commentsCount'
+  | 'sharesCount'
+  | 'timeAgo'
+  | 'liked'
+  | 'saved'
+  | 'commentsList'
+  | 'hidden'
+>;
+
 type FeedContextValue = {
   posts: FeedPost[];
   loading: boolean;
-  addPost: (
-    post: Omit<
-      FeedPost,
-      | 'id'
-      | 'likesCount'
-      | 'commentsCount'
-      | 'sharesCount'
-      | 'timeAgo'
-      | 'liked'
-      | 'commentsList'
-      | 'hidden'
-    >
-  ) => Promise<FeedPost>;
+  addPost: (post: NewPostInput) => Promise<FeedPost>;
   toggleLike: (id: string) => void;
   addComment: (postId: string, comment: Omit<PostComment, 'id' | 'timeAgo'>) => void;
   sharePost: (id: string) => void;
@@ -68,6 +69,7 @@ function buildPosts(userPosts: FeedPost[], state: FeedState): FeedPost[] {
 }
 
 export function FeedProvider({ children }: { children: ReactNode }) {
+  const { pushNotification, syncCloud } = useSocial();
   const [userPosts, setUserPosts] = useState<FeedPost[]>([]);
   const [state, setState] = useState<FeedState>(emptyState);
   const [loading, setLoading] = useState(true);
@@ -114,6 +116,13 @@ export function FeedProvider({ children }: { children: ReactNode }) {
         const next = [post, ...userPosts];
         setUserPosts(next);
         await AsyncStorage.setItem(POSTS_KEY, JSON.stringify(next));
+        pushNotification({
+          type: 'post',
+          title: 'Пост опубликован',
+          body: post.recipe?.title ?? post.text.slice(0, 60),
+          postId: post.id,
+        });
+        void syncCloud();
         return post;
       },
       toggleLike(id) {
@@ -127,6 +136,15 @@ export function FeedProvider({ children }: { children: ReactNode }) {
             [id]: (state.likeDeltas[id] ?? 0) + (wasLiked ? -1 : 1),
           },
         });
+        if (!wasLiked && current) {
+          pushNotification({
+            type: 'like',
+            title: 'Лайк сохранён',
+            body: `Вы лайкнули пост ${current.author}`,
+            postId: id,
+          });
+        }
+        void syncCloud();
       },
       addComment(postId, comment) {
         const entry: PostComment = {
@@ -141,6 +159,17 @@ export function FeedProvider({ children }: { children: ReactNode }) {
             [postId]: [entry, ...(state.extraComments[postId] ?? [])],
           },
         });
+        const post = posts.find((p) => p.id === postId);
+        pushNotification({
+          type: 'comment',
+          title: 'Новый комментарий',
+          body: comment.text.slice(0, 80),
+          postId,
+        });
+        if (post) {
+          // keep reference quiet
+        }
+        void syncCloud();
       },
       sharePost(id) {
         saveState({
@@ -150,6 +179,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
             [id]: (state.shareDeltas[id] ?? 0) + 1,
           },
         });
+        void syncCloud();
       },
       hidePost(id) {
         if (state.hiddenIds.includes(id)) return;
@@ -163,11 +193,12 @@ export function FeedProvider({ children }: { children: ReactNode }) {
       },
       async refresh() {
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 450));
+        await syncCloud();
+        await new Promise((r) => setTimeout(r, 400));
         await load();
       },
     }),
-    [posts, loading, userPosts, state, saveState, load]
+    [posts, loading, userPosts, state, saveState, load, pushNotification, syncCloud]
   );
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>;

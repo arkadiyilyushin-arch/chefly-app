@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import type { Recipe } from '@/data/mockData';
 
 type Kind = 'recipe' | 'photo' | 'video';
 
@@ -25,7 +26,7 @@ const KINDS: { key: Kind; icon: keyof typeof Ionicons.glyphMap; title: string; d
     key: 'recipe',
     icon: 'restaurant-outline',
     title: 'Рецепт',
-    desc: 'Поделиться блюдом с шагами и советами',
+    desc: 'Ингредиенты, шаги и время готовки',
   },
   {
     key: 'photo',
@@ -37,7 +38,7 @@ const KINDS: { key: Kind; icon: keyof typeof Ionicons.glyphMap; title: string; d
     key: 'video',
     icon: 'videocam-outline',
     title: 'Видео готовки',
-    desc: 'Добавить кадр из кулинарного ролика',
+    desc: 'Ролик с процессом или подачей',
   },
 ];
 
@@ -50,15 +51,20 @@ export default function CreateScreen() {
   const [text, setText] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recipeTitle, setRecipeTitle] = useState('');
+  const [cookTime, setCookTime] = useState('30');
+  const [servings, setServings] = useState('2');
+  const [ingredients, setIngredients] = useState('');
+  const [steps, setSteps] = useState('');
 
   async function pickFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Нужен доступ', 'Разрешите доступ к галерее, чтобы выбрать фото.');
+      Alert.alert('Нужен доступ', 'Разрешите доступ к галерее.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: kind === 'video' ? ['videos', 'images'] : ['images'],
       quality: 0.85,
       allowsEditing: true,
       aspect: [4, 3],
@@ -71,7 +77,7 @@ export default function CreateScreen() {
   async function takePhoto() {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Нужен доступ', 'Разрешите доступ к камере, чтобы сделать фото.');
+      Alert.alert('Нужен доступ', 'Разрешите доступ к камере.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -84,6 +90,27 @@ export default function CreateScreen() {
     }
   }
 
+  const recipePreview: Recipe | undefined = useMemo(() => {
+    if (kind !== 'recipe') return undefined;
+    const ings = ingredients
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const st = steps
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!recipeTitle.trim() || ings.length === 0 || st.length === 0) return undefined;
+    return {
+      title: recipeTitle.trim(),
+      cookTimeMin: Number(cookTime) || 30,
+      servings: Number(servings) || 2,
+      difficulty: 'средне',
+      ingredients: ings,
+      steps: st,
+    };
+  }, [kind, recipeTitle, cookTime, servings, ingredients, steps]);
+
   async function onPublish() {
     if (!user) return;
     if (!text.trim()) {
@@ -94,17 +121,30 @@ export default function CreateScreen() {
       Alert.alert('Добавьте фото', 'Выберите фото из галереи или сделайте снимок.');
       return;
     }
+    if (kind === 'recipe' && !recipePreview) {
+      Alert.alert('Заполните рецепт', 'Нужны название, ингредиенты и шаги (каждый с новой строки).');
+      return;
+    }
     setBusy(true);
     try {
       await addPost({
+        authorId: user.id,
         author: user.name,
         avatar: user.avatar,
         text: text.trim(),
         image: imageUri,
         isVideo: kind === 'video',
+        videoUrl:
+          kind === 'video'
+            ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'
+            : undefined,
+        recipe: recipePreview,
       });
       setText('');
       setImageUri(null);
+      setRecipeTitle('');
+      setIngredients('');
+      setSteps('');
       router.replace('/(tabs)');
     } catch {
       Alert.alert('Ошибка', 'Не удалось опубликовать пост');
@@ -178,11 +218,7 @@ export default function CreateScreen() {
                 onPress={() => setKind(opt.key)}
               >
                 <View style={[styles.optionIcon, active && styles.optionIconActive]}>
-                  <Ionicons
-                    name={opt.icon}
-                    size={22}
-                    color={active ? '#fff' : Colors.primary}
-                  />
+                  <Ionicons name={opt.icon} size={22} color={active ? '#fff' : Colors.primary} />
                 </View>
                 <View style={styles.optionText}>
                   <Text style={styles.optionTitle}>{opt.title}</Text>
@@ -193,16 +229,60 @@ export default function CreateScreen() {
             );
           })}
         </View>
+
+        {kind === 'recipe' && (
+          <View style={styles.recipeForm}>
+            <Text style={styles.sectionLabel}>Карточка рецепта</Text>
+            <TextInput
+              style={styles.field}
+              placeholder="Название блюда"
+              placeholderTextColor={Colors.textMuted}
+              value={recipeTitle}
+              onChangeText={setRecipeTitle}
+            />
+            <View style={styles.row2}>
+              <TextInput
+                style={[styles.field, styles.half]}
+                placeholder="Минуты"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="number-pad"
+                value={cookTime}
+                onChangeText={setCookTime}
+              />
+              <TextInput
+                style={[styles.field, styles.half]}
+                placeholder="Порции"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="number-pad"
+                value={servings}
+                onChangeText={setServings}
+              />
+            </View>
+            <TextInput
+              style={[styles.field, styles.area]}
+              placeholder={'Ингредиенты — каждый с новой строки\nнапример:\n200 г риса\n1 луковица'}
+              placeholderTextColor={Colors.textMuted}
+              multiline
+              value={ingredients}
+              onChangeText={setIngredients}
+            />
+            <TextInput
+              style={[styles.field, styles.area]}
+              placeholder={'Шаги — каждый с новой строки'}
+              placeholderTextColor={Colors.textMuted}
+              multiline
+              value={steps}
+              onChangeText={setSteps}
+            />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,11 +290,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
   },
-  title: {
-    fontFamily: Fonts.bold,
-    fontSize: 18,
-    color: Colors.text,
-  },
+  title: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.text },
   postBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,
@@ -223,27 +299,17 @@ const styles = StyleSheet.create({
     minWidth: 120,
     alignItems: 'center',
   },
-  postBtnDisabled: {
-    opacity: 0.7,
-  },
-  postText: {
-    fontFamily: Fonts.semibold,
-    fontSize: 14,
-    color: '#fff',
-  },
+  postBtnDisabled: { opacity: 0.7 },
+  postText: { fontFamily: Fonts.semibold, fontSize: 14, color: '#fff' },
   input: {
     fontFamily: Fonts.regular,
     fontSize: 17,
     color: Colors.text,
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: Spacing.lg,
   },
-  pickRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
+  pickRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xl },
   pickBtn: {
     flex: 1,
     height: 96,
@@ -256,11 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  pickText: {
-    fontFamily: Fonts.medium,
-    fontSize: 13,
-    color: Colors.primary,
-  },
+  pickText: { fontFamily: Fonts.medium, fontSize: 13, color: Colors.primary },
   previewWrap: {
     borderRadius: Radius.md,
     overflow: 'hidden',
@@ -268,10 +330,7 @@ const styles = StyleSheet.create({
     aspectRatio: 4 / 3,
     backgroundColor: Colors.border,
   },
-  preview: {
-    width: '100%',
-    height: '100%',
-  },
+  preview: { width: '100%', height: '100%' },
   removePhoto: {
     position: 'absolute',
     top: 10,
@@ -289,9 +348,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
   },
-  options: {
-    gap: Spacing.sm,
-  },
+  options: { gap: Spacing.sm, marginBottom: Spacing.xl },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,10 +359,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  optionActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primarySoft,
-  },
+  optionActive: { borderColor: Colors.primary, backgroundColor: Colors.primarySoft },
   optionIcon: {
     width: 44,
     height: 44,
@@ -314,21 +368,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionIconActive: {
-    backgroundColor: Colors.primary,
-  },
-  optionText: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontFamily: Fonts.semibold,
-    fontSize: 15,
-    color: Colors.text,
-  },
+  optionIconActive: { backgroundColor: Colors.primary },
+  optionText: { flex: 1 },
+  optionTitle: { fontFamily: Fonts.semibold, fontSize: 15, color: Colors.text },
   optionDesc: {
     fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
   },
+  recipeForm: { gap: Spacing.md },
+  field: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  area: { minHeight: 100, textAlignVertical: 'top' },
+  row2: { flexDirection: 'row', gap: Spacing.md },
+  half: { flex: 1 },
 });

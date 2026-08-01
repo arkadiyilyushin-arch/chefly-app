@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { FeedProvider } from '@/context/FeedContext';
+import { SocialProvider } from '@/context/SocialContext';
 import { Colors } from '@/constants/theme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -59,6 +60,7 @@ function RootNavigator() {
         <Stack.Screen name="post/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="news/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="chat/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: 'modal', headerShown: true, title: 'О Chefly' }}
@@ -86,9 +88,11 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <FeedProvider>
-        <RootNavigator />
-      </FeedProvider>
+      <SocialProvider>
+        <FeedProvider>
+          <RootNavigator />
+        </FeedProvider>
+      </SocialProvider>
     </AuthProvider>
   );
 }

@@ -14,20 +14,51 @@ export type PostComment = {
   timeAgo: string;
 };
 
+export type Recipe = {
+  title: string;
+  cookTimeMin: number;
+  servings: number;
+  difficulty: 'легко' | 'средне' | 'сложно';
+  ingredients: string[];
+  steps: string[];
+};
+
 export type FeedPost = {
   id: string;
+  authorId: string;
   author: string;
   avatar: string;
   timeAgo: string;
   text: string;
   image: string;
   isVideo?: boolean;
+  videoUrl?: string;
+  recipe?: Recipe;
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
   liked?: boolean;
+  saved?: boolean;
   commentsList: PostComment[];
   hidden?: boolean;
+};
+
+export type ChefProfile = {
+  id: string;
+  name: string;
+  avatar: string;
+  bio: string;
+};
+
+export type AppNotification = {
+  id: string;
+  type: 'like' | 'comment' | 'follow' | 'save' | 'post';
+  title: string;
+  body: string;
+  timeAgo: string;
+  read: boolean;
+  postId?: string;
+  createdAt: number;
 };
 
 export type NewsItem = {
@@ -60,6 +91,33 @@ export type ProfileMedia = {
   isVideo?: boolean;
   height: number;
 };
+
+export const chefs: ChefProfile[] = [
+  {
+    id: 'chef_dolapo',
+    name: 'Долапо Абдул',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
+    bio: 'Авторские ризотто и сезонная кухня',
+  },
+  {
+    id: 'chef_elena',
+    name: 'Елена Росси',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
+    bio: 'Хлеб на закваске и домашняя выпечка',
+  },
+  {
+    id: 'chef_marco',
+    name: 'Шеф Марко',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
+    bio: 'Морепродукты и техника ресторана',
+  },
+  {
+    id: 'chef_aisha',
+    name: 'Аиша Хан',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
+    bio: 'Паста, песто и ужины без суеты',
+  },
+];
 
 export const stories: Story[] = [
   {
@@ -102,12 +160,33 @@ export const stories: Story[] = [
 export const feedPosts: FeedPost[] = [
   {
     id: '1',
+    authorId: 'chef_dolapo',
     author: 'Долапо Абдул',
     avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
     timeAgo: '1ч назад',
-    text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры — рецепт в комментариях.',
+    text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры.',
     image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
     isVideo: true,
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    recipe: {
+      title: 'Грибное ризотто',
+      cookTimeMin: 40,
+      servings: 2,
+      difficulty: 'средне',
+      ingredients: [
+        '200 г арборио',
+        '300 г лесных грибов',
+        '1 луковица',
+        '80 г пармезана',
+        'тимьян, масло, бульон',
+      ],
+      steps: [
+        'Обжарьте грибы до золотистой корочки, отложите.',
+        'Пассеруйте лук, добавьте рис, прогрейте 1–2 минуты.',
+        'Вливайте горячий бульон половником, постоянно помешивая.',
+        'В конце вмешайте масло, пармезан, тимьян и грибы.',
+      ],
+    },
     likesCount: 26000,
     commentsCount: 3,
     sharesCount: 220,
@@ -138,11 +217,25 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '2',
+    authorId: 'chef_elena',
     author: 'Елена Росси',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
     timeAgo: '3ч назад',
-    text: 'Воскресная выпечка на закваске 🍞 Гидратация 72%, холодный брожение 18 часов. Мякиш получился идеальный.',
+    text: 'Воскресная выпечка на закваске 🍞 Гидратация 72%, холодный брожение 18 часов.',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=600&fit=crop',
+    recipe: {
+      title: 'Хлеб на закваске',
+      cookTimeMin: 60,
+      servings: 1,
+      difficulty: 'сложно',
+      ingredients: ['500 г муки', '360 мл воды', '100 г закваски', '10 г соли'],
+      steps: [
+        'Смешайте муку, воду и закваску, дайте постоять 30 минут.',
+        'Добавьте соль, вымесите и уберите в холодильник на 18 часов.',
+        'Сформируйте батон, расстойка 1–2 часа.',
+        'Выпекайте в разогретой до 230°C духовке 35–40 минут.',
+      ],
+    },
     likesCount: 18400,
     commentsCount: 2,
     sharesCount: 156,
@@ -165,12 +258,27 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '3',
+    authorId: 'chef_marco',
     author: 'Шеф Марко',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
     timeAgo: '5ч назад',
-    text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны — ни больше, ни меньше.',
+    text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны.',
     image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=600&fit=crop',
     isVideo: true,
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    recipe: {
+      title: 'Гребешки с лимонным соусом',
+      cookTimeMin: 15,
+      servings: 2,
+      difficulty: 'легко',
+      ingredients: ['8 гребешков', '50 г масла', 'лимон', 'микрозелень', 'соль, перец'],
+      steps: [
+        'Просушите гребешки и посолите.',
+        'Разогрейте сковороду до сильного жара.',
+        'Обжарьте по 90 секунд с каждой стороны.',
+        'Полейте лимонным маслом, украсьте микрозеленью.',
+      ],
+    },
     likesCount: 41000,
     commentsCount: 2,
     sharesCount: 890,
@@ -194,11 +302,31 @@ export const feedPosts: FeedPost[] = [
   },
   {
     id: '4',
+    authorId: 'chef_aisha',
     author: 'Аиша Хан',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
     timeAgo: '8ч назад',
-    text: 'Вечер домашней пасты! Свежая тальятелле с песто из черемши и кедровыми орехами. Кто ещё делает пасту сам?',
+    text: 'Вечер домашней пасты! Свежая тальятелле с песто из черемши и кедровыми орехами.',
     image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=600&fit=crop',
+    recipe: {
+      title: 'Тальятелле с песто',
+      cookTimeMin: 50,
+      servings: 3,
+      difficulty: 'средне',
+      ingredients: [
+        '300 г муки',
+        '3 яйца',
+        'черемша',
+        'кедровые орехи',
+        'пармезан, масло',
+      ],
+      steps: [
+        'Замесите тесто из муки и яиц, дайте отдохнуть 30 минут.',
+        'Раскатайте и нарежьте тальятелле.',
+        'Смелите песто из черемши, орехов, сыра и масла.',
+        'Отварите пасту 2–3 минуты, смешайте с песто.',
+      ],
+    },
     likesCount: 9200,
     commentsCount: 1,
     sharesCount: 98,
@@ -213,7 +341,6 @@ export const feedPosts: FeedPost[] = [
     ],
   },
 ];
-
 export const newsItems: NewsItem[] = [
   {
     id: '1',

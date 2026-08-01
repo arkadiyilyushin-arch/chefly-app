@@ -15,14 +15,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
+import { PostVideo } from '@/components/PostVideo';
+import { RecipeBlock } from '@/components/RecipeBlock';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
+import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { formatCount } from '@/utils/formatCount';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getPost, toggleLike, addComment, sharePost } = useFeed();
+  const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
   const { user } = useAuth();
   const post = getPost(id);
   const insets = useSafeAreaInsets();
@@ -40,23 +44,25 @@ export default function PostDetailScreen() {
     );
   }
 
+  const following = isFollowing(post.authorId);
+  const saved = isSaved(post.id);
+
   async function onShare() {
-    if (!post) return;
     try {
       await Share.share({
-        message: `${post.author}: ${post.text}\n\nСмотри в Chefly`,
+        message: `${post!.author}: ${post!.text}\n\nСмотри в Chefly`,
       });
-      sharePost(post.id);
+      sharePost(post!.id);
     } catch {
       // cancelled
     }
   }
 
   function sendComment() {
-    if (!user || !post) return;
+    if (!user) return;
     const text = draft.trim();
     if (!text) return;
-    addComment(post.id, {
+    addComment(post!.id, {
       author: user.name,
       avatar: user.avatar,
       text,
@@ -86,18 +92,27 @@ export default function PostDetailScreen() {
             <Text style={styles.name}>{post.author}</Text>
             <Text style={styles.time}>{post.timeAgo}</Text>
           </View>
+          <Pressable
+            style={[styles.followBtn, following && styles.followBtnOn]}
+            onPress={() => toggleFollow(post.authorId, post.author)}
+          >
+            <Text style={[styles.followText, following && styles.followTextOn]}>
+              {following ? 'Вы подписаны' : 'Подписаться'}
+            </Text>
+          </Pressable>
         </View>
 
         <Text style={styles.body}>{post.text}</Text>
 
         <View style={styles.mediaWrap}>
-          <Image source={{ uri: post.image }} style={styles.media} />
-          {post.isVideo && (
-            <View style={styles.playBtn}>
-              <Ionicons name="play" size={26} color="#fff" style={{ marginLeft: 3 }} />
-            </View>
+          {post.isVideo && post.videoUrl ? (
+            <PostVideo uri={post.videoUrl} />
+          ) : (
+            <Image source={{ uri: post.image }} style={styles.media} />
           )}
         </View>
+
+        {post.recipe ? <RecipeBlock recipe={post.recipe} /> : null}
 
         <View style={styles.actions}>
           <Pressable style={styles.action} onPress={() => toggleLike(post.id)}>
@@ -115,6 +130,16 @@ export default function PostDetailScreen() {
           <Pressable style={styles.action} onPress={onShare}>
             <Ionicons name="paper-plane-outline" size={22} color={Colors.text} />
             <Text style={styles.count}>{formatCount(post.sharesCount)}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.action, { marginLeft: 'auto' }]}
+            onPress={() => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40))}
+          >
+            <Ionicons
+              name={saved ? 'bookmark' : 'bookmark-outline'}
+              size={22}
+              color={saved ? Colors.primary : Colors.text}
+            />
           </Pressable>
         </View>
 
@@ -155,24 +180,10 @@ export default function PostDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  missing: {
-    fontFamily: Fonts.semibold,
-    fontSize: 16,
-    color: Colors.text,
-  },
-  link: {
-    fontFamily: Fonts.semibold,
-    color: Colors.primary,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  missing: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
+  link: { fontFamily: Fonts.semibold, color: Colors.primary },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,17 +191,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
-  topTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 17,
-    color: Colors.text,
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  topTitle: { fontFamily: Fonts.bold, fontSize: 17, color: Colors.text },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,17 +200,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  name: {
-    fontFamily: Fonts.semibold,
-    fontSize: 16,
-    color: Colors.text,
+  name: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
+  time: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  followBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
   },
-  time: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
+  followBtnOn: { backgroundColor: Colors.primarySoft },
+  followText: { fontFamily: Fonts.semibold, fontSize: 12, color: '#fff' },
+  followTextOn: { color: Colors.primary },
   body: {
     fontFamily: Fonts.regular,
     fontSize: 16,
@@ -223,28 +225,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     aspectRatio: 4 / 3,
     backgroundColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  media: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
-  playBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
+  media: { width: '100%', height: '100%' },
   actions: {
     flexDirection: 'row',
     gap: Spacing.xl,
@@ -252,16 +234,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
   },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  count: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-    color: Colors.text,
-  },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  count: { fontFamily: Fonts.medium, fontSize: 14, color: Colors.text },
   commentsTitle: {
     fontFamily: Fonts.bold,
     fontSize: 17,
@@ -294,23 +268,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 8,
   },
-  commentAuthor: {
-    fontFamily: Fonts.semibold,
-    fontSize: 13,
-    color: Colors.text,
-    flexShrink: 1,
-  },
-  commentTime: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-  commentText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.text,
-  },
+  commentAuthor: { fontFamily: Fonts.semibold, fontSize: 13, color: Colors.text, flexShrink: 1 },
+  commentTime: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.textMuted },
+  commentText: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: Colors.text },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

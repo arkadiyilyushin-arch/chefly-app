@@ -18,7 +18,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Avatar } from './Avatar';
+import { PostVideo } from './PostVideo';
 import { useFeed } from '@/context/FeedContext';
+import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { FeedPost as FeedPostType } from '@/data/mockData';
 import { formatCount } from '@/utils/formatCount';
@@ -30,9 +32,12 @@ type Props = {
 export function FeedPostCard({ post }: Props) {
   const router = useRouter();
   const { toggleLike, sharePost, hidePost } = useFeed();
+  const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
   const [expanded, setExpanded] = useState(false);
   const lastTap = useRef(0);
   const heart = useSharedValue(0);
+  const following = isFollowing(post.authorId);
+  const saved = isSaved(post.id);
 
   const long = post.text.length > 90;
   const preview = long && !expanded ? `${post.text.slice(0, 90).trim()}…` : post.text;
@@ -62,6 +67,7 @@ export function FeedPostCard({ post }: Props) {
       lastTap.current = 0;
     } else {
       lastTap.current = now;
+      openPost();
     }
   }
 
@@ -80,6 +86,14 @@ export function FeedPostCard({ post }: Props) {
     Alert.alert(post.author, undefined, [
       { text: 'Открыть', onPress: openPost },
       {
+        text: following ? 'Отписаться' : 'Подписаться',
+        onPress: () => toggleFollow(post.authorId, post.author),
+      },
+      {
+        text: saved ? 'Убрать из избранного' : 'В избранное',
+        onPress: () => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40)),
+      },
+      {
         text: 'Скрыть пост',
         style: 'destructive',
         onPress: () => hidePost(post.id),
@@ -90,39 +104,52 @@ export function FeedPostCard({ post }: Props) {
 
   return (
     <View style={styles.card}>
-      <Pressable style={styles.header} onPress={openPost}>
-        <View style={styles.author}>
+      <View style={styles.header}>
+        <Pressable style={styles.author} onPress={openPost}>
           <Avatar uri={post.avatar} size={42} />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.name}>{post.author}</Text>
-            <Text style={styles.time}>{post.timeAgo}</Text>
+            <Text style={styles.time}>
+              {post.timeAgo}
+              {post.recipe ? ` · ${post.recipe.cookTimeMin} мин` : ''}
+            </Text>
           </View>
-        </View>
+        </Pressable>
+        <Pressable
+          style={[styles.followChip, following && styles.followChipOn]}
+          onPress={() => toggleFollow(post.authorId, post.author)}
+        >
+          <Text style={[styles.followChipText, following && styles.followChipTextOn]}>
+            {following ? 'Вы подписаны' : 'Подписка'}
+          </Text>
+        </Pressable>
         <Pressable hitSlop={12} onPress={onMenu}>
           <Ionicons name="ellipsis-vertical" size={18} color={Colors.textSecondary} />
         </Pressable>
-      </Pressable>
+      </View>
 
       <Pressable onPress={openPost}>
         <Text style={styles.body}>
           {preview}
           {long && (
-            <Text
-              style={styles.more}
-              onPress={() => setExpanded((v) => !v)}
-            >
+            <Text style={styles.more} onPress={() => setExpanded((v) => !v)}>
               {expanded ? ' Скрыть' : ' Ещё'}
             </Text>
           )}
         </Text>
+        {post.recipe && (
+          <View style={styles.recipeChip}>
+            <Ionicons name="restaurant-outline" size={14} color={Colors.primary} />
+            <Text style={styles.recipeChipText}>{post.recipe.title}</Text>
+          </View>
+        )}
       </Pressable>
 
-      <Pressable style={styles.mediaWrap} onPress={onDoubleTapLike} onLongPress={openPost}>
-        <Image source={{ uri: post.image }} style={styles.media} />
-        {post.isVideo && (
-          <Pressable style={styles.playBtn} onPress={openPost}>
-            <Ionicons name="play" size={22} color="#fff" style={{ marginLeft: 3 }} />
-          </Pressable>
+      <Pressable style={styles.mediaWrap} onPress={onDoubleTapLike}>
+        {post.isVideo && post.videoUrl ? (
+          <PostVideo uri={post.videoUrl} />
+        ) : (
+          <Image source={{ uri: post.image }} style={styles.media} />
         )}
         <Animated.View style={[styles.heartBurst, heartStyle]} pointerEvents="none">
           <Ionicons name="heart" size={72} color="#fff" />
@@ -146,6 +173,16 @@ export function FeedPostCard({ post }: Props) {
           <Ionicons name="paper-plane-outline" size={20} color={Colors.text} />
           <Text style={styles.count}>{formatCount(post.sharesCount)}</Text>
         </Pressable>
+        <Pressable
+          style={[styles.action, { marginLeft: 'auto' }]}
+          onPress={() => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40))}
+        >
+          <Ionicons
+            name={saved ? 'bookmark' : 'bookmark-outline'}
+            size={20}
+            color={saved ? Colors.primary : Colors.text}
+          />
+        </Pressable>
       </View>
     </View>
   );
@@ -167,10 +204,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: Spacing.md,
   },
   author: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
@@ -186,16 +224,49 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 1,
   },
+  followChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primarySoft,
+  },
+  followChipOn: {
+    backgroundColor: Colors.border,
+  },
+  followChipText: {
+    fontFamily: Fonts.semibold,
+    fontSize: 11,
+    color: Colors.primary,
+  },
+  followChipTextOn: {
+    color: Colors.textSecondary,
+  },
   body: {
     fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     color: Colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   more: {
     fontFamily: Fonts.semibold,
     color: Colors.primary,
+  },
+  recipeChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+    marginBottom: Spacing.md,
+  },
+  recipeChipText: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: Colors.primaryDark,
   },
   mediaWrap: {
     borderRadius: Radius.md,
@@ -213,16 +284,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '100%',
-  },
-  playBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.overlay,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
   },
   heartBurst: {
     position: 'absolute',

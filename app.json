@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chefly",
     "slug": "chefly",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "chefly",
@@ -20,7 +20,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "app.chefly.mobile",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
@@ -48,7 +48,8 @@
           "photosPermission": "Chefly нужен доступ к фото, чтобы публиковать рецепты.",
           "cameraPermission": "Chefly нужен доступ к камере, чтобы снимать блюда."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

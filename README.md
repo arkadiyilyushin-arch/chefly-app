@@ -6,18 +6,20 @@ Share recipes, follow kitchen news, discuss on the forum, and message fellow coo
 
 ## Download APK
 
-**[Chefly-1.0.4.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.4/Chefly-1.0.4.apk)**
+**[Chefly-1.0.5.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.5/Chefly-1.0.5.apk)**
 
-Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.4) page.
+Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.5) page.
 
 ## Features
 
 - **Вход / регистрация** — локальная сессия на устройстве
-- **Лента** — сторис и посты с рецептами/видео
+- **Лента** — «Для вас» / «Подписки», рецепты, видео, лайки и комментарии
+- **Избранное** — сохранение постов и быстрый доступ из профиля
+- **Уведомления** — лайки, комментарии и подписки в реальном времени на устройстве
 - **Новости** — события, тренды и кухонные новости
 - **Сообщения** — чаты с поварами и кружками
-- **Профиль** — свой аккаунт и выход
-- **Создать** — пост с фото из галереи или камеры
+- **Профиль** — свой аккаунт, подписки и выход
+- **Создать** — пост с фото/видео и блоком рецепта
 
 ## Run
 
