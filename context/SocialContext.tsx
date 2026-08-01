@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ActivityIndicator, View } from 'react-native';
 import { AppNotification, chefs } from '@/data/mockData';
 import { Colors } from '@/constants/theme';
+import { pullSync, pushSync } from '@/services/syncApi';
 
 const SOCIAL_KEY = 'chefly.social.v2';
 const CLOUD_KEY = 'chefly.cloud.engagement.v2';
@@ -325,7 +326,22 @@ export function SocialProvider({ children }: { children: ReactNode }) {
           chefsKnown: chefs.map((c) => c.id),
         };
         await AsyncStorage.setItem(CLOUD_KEY, JSON.stringify(cloudPayload));
-        await persist({ ...state, cloudSyncedAt: syncedAt });
+        // Optional remote Worker + local vault mirror
+        const userId = 'device';
+        const remote = await pullSync(userId);
+        let followingIds = state.followingIds;
+        let savedPostIds = state.savedPostIds;
+        if (remote) {
+          followingIds = Array.from(new Set([...remote.followingIds, ...followingIds]));
+          savedPostIds = Array.from(new Set([...remote.savedPostIds, ...savedPostIds]));
+        }
+        await pushSync({
+          userId,
+          followingIds,
+          savedPostIds,
+          updatedAt: syncedAt,
+        });
+        await persist({ ...state, followingIds, savedPostIds, cloudSyncedAt: syncedAt });
       },
     };
   }, [state, persist]);

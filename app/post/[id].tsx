@@ -17,6 +17,7 @@ import { Avatar } from '@/components/Avatar';
 import { MediaCarousel } from '@/components/MediaCarousel';
 import { RecipeBlock } from '@/components/RecipeBlock';
 import { useAuth } from '@/context/AuthContext';
+import { useChat } from '@/context/ChatContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
@@ -27,6 +28,7 @@ export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getPost, toggleLike, addComment, sharePost, toggleCommentLike, repostPost } = useFeed();
   const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
+  const { ensureChefChat } = useChat();
   const { user } = useAuth();
   const post = getPost(id);
   const insets = useSafeAreaInsets();
@@ -109,6 +111,19 @@ export default function PostDetailScreen() {
               <Text style={styles.name}>{post.author}</Text>
               <Text style={styles.time}>{post.timeAgo}</Text>
             </View>
+          </Pressable>
+          <Pressable
+            style={styles.msgBtn}
+            onPress={() => {
+              const chatId = ensureChefChat({
+                id: post.authorId,
+                name: post.author,
+                avatar: post.avatar,
+              });
+              router.push(`/chat/${chatId}` as any);
+            }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
           </Pressable>
           <Pressable
             style={[styles.followBtn, following && styles.followBtnOn]}
@@ -274,6 +289,14 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
   time: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  msgBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   followBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 12,

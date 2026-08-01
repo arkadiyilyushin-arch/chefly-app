@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
 import { FeedPostCard } from '@/components/FeedPostCard';
+import { useChat } from '@/context/ChatContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
@@ -15,6 +16,7 @@ export default function ChefProfileScreen() {
   const router = useRouter();
   const { posts } = useFeed();
   const { isFollowing, toggleFollow } = useSocial();
+  const { ensureChefChat } = useChat();
 
   const chef = chefs.find((c) => c.id === id);
   const chefPosts = posts.filter((p) => p.authorId === id);
@@ -48,14 +50,26 @@ export default function ChefProfileScreen() {
                 <Text style={styles.statNum}>{chefPosts.length}</Text> постов
               </Text>
             </View>
-            <Pressable
-              style={[styles.followBtn, following && styles.followBtnOn]}
-              onPress={() => toggleFollow(id, name)}
-            >
-              <Text style={[styles.followText, following && styles.followTextOn]}>
-                {following ? 'Вы подписаны' : 'Подписаться'}
-              </Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable
+                style={[styles.followBtn, following && styles.followBtnOn]}
+                onPress={() => toggleFollow(id, name)}
+              >
+                <Text style={[styles.followText, following && styles.followTextOn]}>
+                  {following ? 'Вы подписаны' : 'Подписаться'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.msgBtn}
+                onPress={() => {
+                  const chatId = ensureChefChat({ id, name, avatar });
+                  router.push(`/chat/${chatId}` as any);
+                }}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
+                <Text style={styles.msgText}>Написать</Text>
+              </Pressable>
+            </View>
             <Text style={styles.section}>Публикации</Text>
           </View>
         }
@@ -96,16 +110,26 @@ const styles = StyleSheet.create({
   stats: { marginTop: 4 },
   stat: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textSecondary },
   statNum: { fontFamily: Fonts.bold, color: Colors.text },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   followBtn: {
-    marginTop: 8,
     backgroundColor: Colors.primary,
-    paddingHorizontal: 28,
+    paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: Radius.full,
   },
   followBtnOn: { backgroundColor: Colors.primarySoft },
   followText: { fontFamily: Fonts.semibold, fontSize: 14, color: '#fff' },
   followTextOn: { color: Colors.primary },
+  msgBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+  },
+  msgText: { fontFamily: Fonts.semibold, fontSize: 14, color: Colors.primary },
   section: {
     alignSelf: 'flex-start',
     marginTop: Spacing.lg,

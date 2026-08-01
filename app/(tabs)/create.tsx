@@ -66,6 +66,7 @@ export default function CreateScreen() {
   const [kind, setKind] = useState<Kind>('recipe');
   const [text, setText] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recipeTitle, setRecipeTitle] = useState('');
   const [cookTime, setCookTime] = useState('30');
@@ -146,8 +147,13 @@ export default function CreateScreen() {
       aspect: [4, 3],
     });
     if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      if (!imageUri) setImageUri(uri);
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      const isVid = asset.type === 'video' || kind === 'video';
+      if (isVid) {
+        setVideoUri(uri);
+        if (!imageUri) setImageUri(uri);
+      } else if (!imageUri) setImageUri(uri);
       else if (extraImages.length < 4) setExtraImages((prev) => [...prev, uri]);
       else setImageUri(uri);
     }
@@ -196,8 +202,12 @@ export default function CreateScreen() {
       Alert.alert('Добавьте описание', 'Напишите, что вы готовите.');
       return;
     }
-    if (!imageUri) {
-      Alert.alert('Добавьте фото', 'Выберите фото из галереи или сделайте снимок.');
+    if (!imageUri && !(kind === 'video' && videoUri)) {
+      Alert.alert('Добавьте медиа', 'Выберите фото или видео из галереи.');
+      return;
+    }
+    if (kind === 'video' && !videoUri && !imageUri) {
+      Alert.alert('Добавьте видео', 'Выберите ролик из галереи.');
       return;
     }
     if (kind === 'recipe' && !recipePreview) {
@@ -206,24 +216,23 @@ export default function CreateScreen() {
     }
     setBusy(true);
     try {
-      const images = [imageUri, ...extraImages];
+      const cover = imageUri ?? videoUri!;
+      const images = imageUri ? [imageUri, ...extraImages] : undefined;
       await addPost({
         authorId: user.id,
         author: user.name,
         avatar: user.avatar,
         text: text.trim(),
-        image: imageUri,
-        images: images.length > 1 ? images : undefined,
+        image: cover,
+        images: images && images.length > 1 ? images : undefined,
         tags: selectedTags.length ? selectedTags : undefined,
         isVideo: kind === 'video',
-        videoUrl:
-          kind === 'video'
-            ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'
-            : undefined,
+        videoUrl: kind === 'video' ? videoUri ?? imageUri ?? undefined : undefined,
         recipe: recipePreview,
       });
       setText('');
       setImageUri(null);
+      setVideoUri(null);
       setExtraImages([]);
       setSelectedTags([]);
       setRecipeTitle('');

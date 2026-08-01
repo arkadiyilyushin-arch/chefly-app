@@ -11,8 +11,11 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { AppMetaProvider, useAppMeta } from '@/context/AppMetaContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ChatProvider } from '@/context/ChatContext';
 import { FeedProvider } from '@/context/FeedContext';
+import { MenuProvider } from '@/context/MenuContext';
 import { SocialProvider } from '@/context/SocialContext';
 import { Colors } from '@/constants/theme';
 
@@ -26,16 +29,18 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const { ready, onboarding } = useAppMeta();
   const segments = useSegments() as string[];
   const inAuth = segments[0] === '(auth)';
+  const inOnboarding = segments[0] === 'onboarding';
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && ready) {
       SplashScreen.hideAsync();
     }
-  }, [loading]);
+  }, [loading, ready]);
 
-  if (loading) {
+  if (loading || !ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background }}>
         <ActivityIndicator color={Colors.primary} size="large" />
@@ -48,7 +53,11 @@ function RootNavigator() {
   }
 
   if (user && inAuth) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={(onboarding.done ? '/(tabs)' : '/onboarding') as any} />;
+  }
+
+  if (user && !onboarding.done && !inOnboarding) {
+    return <Redirect href={'/onboarding' as any} />;
   }
 
   return (
@@ -56,6 +65,7 @@ function RootNavigator() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="post/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="news/[id]" options={{ presentation: 'card' }} />
@@ -64,6 +74,8 @@ function RootNavigator() {
         <Stack.Screen name="chef/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="reels" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="menu" options={{ presentation: 'card' }} />
+        <Stack.Screen name="shopping" options={{ presentation: 'card' }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: 'modal', headerShown: true, title: 'О Chefly' }}
@@ -91,11 +103,17 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <SocialProvider>
-        <FeedProvider>
-          <RootNavigator />
-        </FeedProvider>
-      </SocialProvider>
+      <AppMetaProvider>
+        <SocialProvider>
+          <FeedProvider>
+            <ChatProvider>
+              <MenuProvider>
+                <RootNavigator />
+              </MenuProvider>
+            </ChatProvider>
+          </FeedProvider>
+        </SocialProvider>
+      </AppMetaProvider>
     </AuthProvider>
   );
 }

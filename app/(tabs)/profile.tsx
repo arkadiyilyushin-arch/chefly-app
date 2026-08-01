@@ -72,6 +72,21 @@ export default function ProfileScreen() {
 
         <Text style={styles.bio}>{user.bio}</Text>
 
+        <View style={styles.quick}>
+          <Pressable style={styles.quickBtn} onPress={() => router.push('/menu' as any)}>
+            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+            <Text style={styles.quickText}>Меню недели</Text>
+          </Pressable>
+          <Pressable style={styles.quickBtn} onPress={() => router.push('/shopping' as any)}>
+            <Ionicons name="cart-outline" size={18} color={Colors.primary} />
+            <Text style={styles.quickText}>Покупки</Text>
+          </Pressable>
+          <Pressable style={styles.quickBtn} onPress={() => router.push('/favorites' as any)}>
+            <Ionicons name="bookmark-outline" size={18} color={Colors.primary} />
+            <Text style={styles.quickText}>Избранное</Text>
+          </Pressable>
+        </View>
+
         <View style={styles.stats}>
           {stats.map((s) => (
             <View key={s.label} style={styles.stat}>
@@ -158,6 +173,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     lineHeight: 20,
   },
+  quick: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  quickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+  },
+  quickText: { fontFamily: Fonts.semibold, fontSize: 12, color: Colors.primary },
   stats: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,

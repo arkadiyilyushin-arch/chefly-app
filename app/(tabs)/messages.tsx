@@ -1,20 +1,30 @@
+import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageRow } from '@/components/MessageRow';
+import { NetworkBanner } from '@/components/NetworkBanner';
+import { useChat } from '@/context/ChatContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { messages } from '@/data/mockData';
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
+  const { listMessages } = useChat();
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return listMessages;
+    return listMessages.filter(
+      (m) => m.name.toLowerCase().includes(q) || m.lastMessage.toLowerCase().includes(q)
+    );
+  }, [listMessages, query]);
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <NetworkBanner />
       <View style={styles.header}>
         <Text style={styles.title}>Сообщения</Text>
-        <Pressable style={styles.compose}>
-          <Ionicons name="create-outline" size={22} color={Colors.text} />
-        </Pressable>
       </View>
 
       <View style={styles.search}>
@@ -23,26 +33,28 @@ export default function MessagesScreen() {
           placeholder="Поиск чатов"
           placeholderTextColor={Colors.textMuted}
           style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
         />
       </View>
 
       <FlatList
-        data={messages}
+        data={filtered}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 110 }}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
         renderItem={({ item }) => <MessageRow message={item} />}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Чатов пока нет — напишите шефу из профиля</Text>
+        }
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -56,14 +68,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: Colors.text,
     letterSpacing: -0.5,
-  },
-  compose: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   search: {
     flexDirection: 'row',
@@ -85,6 +89,13 @@ const styles = StyleSheet.create({
   sep: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.border,
-    marginLeft: 82,
+    marginLeft: 84,
+  },
+  empty: {
+    textAlign: 'center',
+    marginTop: 40,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    paddingHorizontal: 24,
   },
 });

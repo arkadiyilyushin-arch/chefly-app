@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -18,8 +19,10 @@ import { Avatar } from '@/components/Avatar';
 import { FeedPostCard } from '@/components/FeedPostCard';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
 import { Logo } from '@/components/Logo';
+import { NetworkBanner } from '@/components/NetworkBanner';
 import { StoriesRow } from '@/components/StoriesRow';
 import { StoryViewer } from '@/components/StoryViewer';
+import { useAppMeta } from '@/context/AppMetaContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
@@ -40,6 +43,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { posts, refresh, loading, preferredTags, markSeen } = useFeed();
+  const { searchHistory, addSearchQuery, clearSearchHistory } = useAppMeta();
   const {
     followingIds,
     notifications,
@@ -158,25 +162,28 @@ export default function HomeScreen() {
     [filter]
   );
 
+  function openMore() {
+    Alert.alert('Ещё', undefined, [
+      { text: 'Что на кухне', onPress: () => setKitchenOpen(true) },
+      { text: 'Избранное', onPress: () => router.push('/favorites' as any) },
+      { text: 'Меню на неделю', onPress: () => router.push('/menu' as any) },
+      { text: 'Список покупок', onPress: () => router.push('/shopping' as any) },
+      { text: 'Настройки ленты', onPress: () => setPrefsOpen(true) },
+      { text: 'Отмена', style: 'cancel' },
+    ]);
+  }
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <NetworkBanner />
       <View style={styles.header}>
         <Logo size={44} />
         <View style={styles.headerActions}>
           <Pressable style={styles.iconBtn} onPress={() => router.push('/reels' as any)}>
             <Ionicons name="play-circle-outline" size={22} color={Colors.text} />
           </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => setKitchenOpen(true)}>
-            <Ionicons name="nutrition-outline" size={22} color={kitchen.length ? Colors.primary : Colors.text} />
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => router.push('/favorites' as any)}>
-            <Ionicons name="bookmark-outline" size={22} color={Colors.text} />
-          </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search" size={22} color={Colors.text} />
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={() => setPrefsOpen(true)}>
-            <Ionicons name="settings-outline" size={20} color={Colors.text} />
           </Pressable>
           <Pressable
             style={styles.iconBtn}
@@ -187,6 +194,9 @@ export default function HomeScreen() {
           >
             <Ionicons name="notifications-outline" size={22} color={Colors.text} />
             {unreadCount > 0 && <View style={styles.dot} />}
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={openMore}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={Colors.text} />
           </Pressable>
         </View>
       </View>
@@ -290,16 +300,58 @@ export default function HomeScreen() {
             <Ionicons name="search" size={18} color={Colors.textMuted} />
             <TextInput
               autoFocus
-              placeholder="Поиск по ленте и рецептам"
+              placeholder="Поиск шефов и рецептов"
               placeholderTextColor={Colors.textMuted}
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
+              onSubmitEditing={() => addSearchQuery(query)}
             />
-            <Pressable onPress={() => setSearchOpen(false)}>
+            <Pressable
+              onPress={() => {
+                addSearchQuery(query);
+                setSearchOpen(false);
+              }}
+            >
               <Text style={styles.done}>Готово</Text>
             </Pressable>
           </View>
+          {!query.trim() && searchHistory.length > 0 ? (
+            <View style={styles.historyBox}>
+              <View style={styles.historyHead}>
+                <Text style={styles.historyTitle}>Недавние</Text>
+                <Pressable onPress={clearSearchHistory}>
+                  <Text style={styles.done}>Очистить</Text>
+                </Pressable>
+              </View>
+              {searchHistory.map((h) => (
+                <Pressable key={h} style={styles.historyRow} onPress={() => setQuery(h)}>
+                  <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                  <Text style={styles.historyText}>{h}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          {!!query.trim() && (
+            <View style={styles.chefHits}>
+              {chefs
+                .filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase()))
+                .map((c) => (
+                  <Pressable
+                    key={c.id}
+                    style={styles.chefHit}
+                    onPress={() => {
+                      addSearchQuery(query);
+                      setSearchOpen(false);
+                      router.push(`/chef/${c.id}` as any);
+                    }}
+                  >
+                    <Avatar uri={c.avatar} size={36} />
+                    <Text style={styles.chefHitName}>{c.name}</Text>
+                  </Pressable>
+                ))}
+            </View>
+          )}
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
@@ -607,4 +659,17 @@ const styles = StyleSheet.create({
   },
   prefTitle: { fontFamily: Fonts.semibold, fontSize: 15, color: Colors.text },
   prefDesc: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  historyBox: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  historyHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  historyTitle: { fontFamily: Fonts.semibold, fontSize: 14, color: Colors.text },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },
+  historyText: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.text },
+  chefHits: { paddingHorizontal: Spacing.lg, gap: 8, marginTop: Spacing.sm },
+  chefHit: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  chefHitName: { fontFamily: Fonts.semibold, fontSize: 14, color: Colors.text },
 });

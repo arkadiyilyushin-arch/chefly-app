@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   FlatList,
@@ -13,47 +13,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
-import { messages } from '@/data/mockData';
+import { useChat } from '@/context/ChatContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-
-type ChatMessage = {
-  id: string;
-  text: string;
-  fromMe: boolean;
-  time: string;
-};
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const peer = messages.find((m) => m.id === id);
+  const { getThread, sendMessage } = useChat();
+  const thread = getThread(id);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [draft, setDraft] = useState('');
+  const [tick, setTick] = useState(0);
 
-  const initial = useMemo<ChatMessage[]>(
-    () =>
-      peer
-        ? [
-            {
-              id: '1',
-              text: peer.lastMessage,
-              fromMe: false,
-              time: peer.timeAgo,
-            },
-            {
-              id: '2',
-              text: 'Привет! Да, давай обсудим детали 👋',
-              fromMe: true,
-              time: 'сейчас',
-            },
-          ]
-        : [],
-    [peer]
-  );
+  useEffect(() => {
+    setTick((t) => t + 1);
+  }, [thread?.bubbles.length]);
 
-  const [chat, setChat] = useState(initial);
-
-  if (!peer) {
+  if (!thread) {
     return (
       <View style={[styles.screen, styles.center, { paddingTop: insets.top }]}>
         <Text style={styles.missing}>Чат не найден</Text>
@@ -65,12 +41,7 @@ export default function ChatScreen() {
   }
 
   function send() {
-    const text = draft.trim();
-    if (!text) return;
-    setChat((prev) => [
-      ...prev,
-      { id: `m_${Date.now()}`, text, fromMe: true, time: 'сейчас' },
-    ]);
+    sendMessage(thread!.id, draft);
     setDraft('');
   }
 
@@ -78,29 +49,34 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={[styles.screen, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={8}
     >
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.iconBtn}>
+        <Pressable onPress={() => router.back()} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={26} color={Colors.text} />
         </Pressable>
-        <Avatar uri={peer.avatar} size={36} />
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.name} numberOfLines={1}>
-            {peer.name}
-          </Text>
-          <Text style={styles.status}>{peer.online ? 'в сети' : 'не в сети'}</Text>
-        </View>
+        <Pressable
+          style={styles.peer}
+          onPress={() => {
+            if (!thread.peerId.startsWith('seed_')) {
+              router.push(`/chef/${thread.peerId}` as any);
+            }
+          }}
+        >
+          <Avatar uri={thread.avatar} size={36} />
+          <Text style={styles.name}>{thread.name}</Text>
+        </Pressable>
+        <View style={styles.iconBtn} />
       </View>
 
       <FlatList
-        data={chat}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        data={thread.bubbles}
+        keyExtractor={(m) => m.id}
+        extraData={tick}
+        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 20, gap: 10 }}
         renderItem={({ item }) => (
-          <View style={[styles.bubble, item.fromMe ? styles.mine : styles.theirs]}>
-            <Text style={[styles.bubbleText, item.fromMe && styles.mineText]}>{item.text}</Text>
-            <Text style={[styles.bubbleTime, item.fromMe && styles.mineTime]}>{item.time}</Text>
+          <View style={[styles.bubble, item.fromMe ? styles.me : styles.them]}>
+            <Text style={[styles.bubbleText, item.fromMe && styles.meText]}>{item.text}</Text>
+            <Text style={[styles.time, item.fromMe && styles.meTime]}>{item.time}</Text>
           </View>
         )}
       />
@@ -123,88 +99,32 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  center: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  missing: {
-    fontFamily: Fonts.semibold,
-    fontSize: 16,
-    color: Colors.text,
-  },
-  link: {
-    fontFamily: Fonts.semibold,
-    color: Colors.primary,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  missing: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
+  link: { fontFamily: Fonts.semibold, color: Colors.primary },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
     paddingBottom: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
   },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  name: {
-    fontFamily: Fonts.semibold,
-    fontSize: 16,
-    color: Colors.text,
-  },
-  status: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  list: {
-    padding: Spacing.lg,
-    gap: 10,
-  },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  peer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  name: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
   bubble: {
-    maxWidth: '78%',
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    maxWidth: '80%',
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
   },
-  mine: {
-    alignSelf: 'flex-end',
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  theirs: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.surface,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleText: {
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-    lineHeight: 21,
-    color: Colors.text,
-  },
-  mineText: {
-    color: '#fff',
-  },
-  bubbleTime: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 4,
-    alignSelf: 'flex-end',
-  },
-  mineTime: {
-    color: 'rgba(255,255,255,0.75)',
-  },
+  me: { alignSelf: 'flex-end', backgroundColor: Colors.primary },
+  them: { alignSelf: 'flex-start', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  bubbleText: { fontFamily: Fonts.regular, fontSize: 15, color: Colors.text, lineHeight: 21 },
+  meText: { color: '#fff' },
+  time: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.textMuted, marginTop: 4 },
+  meTime: { color: 'rgba(255,255,255,0.7)' },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

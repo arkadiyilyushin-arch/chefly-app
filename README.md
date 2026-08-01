@@ -6,20 +6,19 @@ Share recipes, follow kitchen news, discuss on the forum, and message fellow coo
 
 ## Download APK
 
-**[Chefly-1.0.7.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.7/Chefly-1.0.7.apk)**
+**[Chefly-1.0.8.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.8/Chefly-1.0.8.apk)**
 
-Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.7) page.
+Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.8) page.
 
 ## Features
 
-- **Вход / регистрация** — локальная сессия на устройстве
-- **Лента** — фильтры, «Что на кухне», Reels, ранжирование
-- **Reels** — вертикальный свайп видео
-- **Режим готовки** — шаги, таймер и оценка рецепта
-- **Коллекции** в избранном, челленджи «за неделю», @упоминания
-- **Черновики** при создании поста
-- **Настройки ленты** — mute / автоплей только по Wi‑Fi
-- **Новости**, **сообщения**, **профиль**
+- **Онбординг** — роль, кухни, подписки на шефов
+- **Лента** — компактная шапка, поиск с историей, offline-баннер
+- **Меню на неделю** + **список покупок** из избранных рецептов
+- **Чаты с шефами** из профиля и поста
+- **Локальное видео** при создании (без sample-URL)
+- **Sync API** — `backend/` Cloudflare Worker (опционально через `EXPO_PUBLIC_API_URL`)
+- Reels, cook mode, коллекции, челленджи, @упоминания
 
 ## Run
 
