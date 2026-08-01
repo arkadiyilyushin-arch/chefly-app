@@ -1,11 +1,14 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Avatar } from '@/components/Avatar';
 import { MediaGrid } from '@/components/MediaGrid';
+import { useAuth } from '@/context/AuthContext';
+import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { currentUser, profileMedia } from '@/data/mockData';
+import { profileMedia } from '@/data/mockData';
 
 const TABS = [
   { key: 'grid', icon: 'grid-outline' as const, active: 'grid' as const },
@@ -15,15 +18,38 @@ const TABS = [
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
+  const { posts } = useFeed();
+  const router = useRouter();
   const [tab, setTab] = useState('reels');
-  const [following, setFollowing] = useState(false);
+
+  const myPostsCount = useMemo(
+    () => posts.filter((p) => p.author === user?.name).length,
+    [posts, user?.name]
+  );
 
   const stats = [
-    { label: 'Посты', value: currentUser.posts },
-    { label: 'Подписчики', value: currentUser.followers },
-    { label: 'Подписки', value: currentUser.following },
-    { label: 'Лайки', value: currentUser.likes },
+    { label: 'Посты', value: String(myPostsCount || 0) },
+    { label: 'Подписчики', value: '0' },
+    { label: 'Подписки', value: '0' },
+    { label: 'Лайки', value: '0' },
   ];
+
+  function onLogout() {
+    Alert.alert('Выйти?', 'Вы сможете войти снова в любой момент.', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Выйти',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/(auth)/welcome' as any);
+        },
+      },
+    ]);
+  }
+
+  if (!user) return null;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -32,25 +58,17 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         <View style={styles.header}>
-          <Avatar uri={currentUser.avatar} size={72} />
+          <Avatar uri={user.avatar} size={72} />
           <View style={styles.headerInfo}>
-            <Text style={styles.name}>{currentUser.name}</Text>
-            <Text style={styles.email}>{currentUser.email}</Text>
+            <Text style={styles.name}>{user.name}</Text>
+            <Text style={styles.email}>{user.email}</Text>
           </View>
-          <Pressable
-            style={[styles.followBtn, following && styles.followingBtn]}
-            onPress={() => setFollowing((v) => !v)}
-          >
-            <Text style={[styles.followText, following && styles.followingText]}>
-              {following ? 'Вы подписаны' : 'Подписаться'}
-            </Text>
-          </Pressable>
-          <Pressable hitSlop={10}>
-            <Ionicons name="ellipsis-horizontal" size={22} color={Colors.text} />
+          <Pressable style={styles.logoutBtn} onPress={onLogout}>
+            <Text style={styles.logoutText}>Выйти</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.bio}>{currentUser.bio}</Text>
+        <Text style={styles.bio}>{user.bio}</Text>
 
         <View style={styles.stats}>
           {stats.map((s) => (
@@ -109,21 +127,15 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
-  followBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 18,
+  logoutBtn: {
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: Radius.full,
   },
-  followingBtn: {
-    backgroundColor: Colors.primarySoft,
-  },
-  followText: {
+  logoutText: {
     fontFamily: Fonts.semibold,
     fontSize: 13,
-    color: '#fff',
-  },
-  followingText: {
     color: Colors.primary,
   },
   bio: {

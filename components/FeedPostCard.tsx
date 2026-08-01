@@ -1,13 +1,9 @@
 import { useState } from 'react';
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Avatar } from './Avatar';
+import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { FeedPost as FeedPostType } from '@/data/mockData';
 
@@ -16,13 +12,14 @@ type Props = {
 };
 
 export function FeedPostCard({ post }: Props) {
-  const [liked, setLiked] = useState(!!post.liked);
+  const router = useRouter();
+  const { toggleLike } = useFeed();
   const [expanded, setExpanded] = useState(false);
   const long = post.text.length > 90;
   const preview = long && !expanded ? `${post.text.slice(0, 90).trim()}…` : post.text;
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => router.push(`/post/${post.id}` as any)}>
       <View style={styles.header}>
         <View style={styles.author}>
           <Avatar uri={post.avatar} size={42} />
@@ -31,7 +28,7 @@ export function FeedPostCard({ post }: Props) {
             <Text style={styles.time}>{post.timeAgo}</Text>
           </View>
         </View>
-        <Pressable hitSlop={12}>
+        <Pressable hitSlop={12} onPress={(e) => e.stopPropagation?.()}>
           <Ionicons name="ellipsis-vertical" size={18} color={Colors.textSecondary} />
         </Pressable>
       </View>
@@ -39,7 +36,13 @@ export function FeedPostCard({ post }: Props) {
       <Text style={styles.body}>
         {preview}
         {long && (
-          <Text style={styles.more} onPress={() => setExpanded((v) => !v)}>
+          <Text
+            style={styles.more}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              setExpanded((v) => !v);
+            }}
+          >
             {expanded ? ' Скрыть' : ' Ещё'}
           </Text>
         )}
@@ -55,15 +58,21 @@ export function FeedPostCard({ post }: Props) {
       </View>
 
       <View style={styles.actions}>
-        <Pressable style={styles.action} onPress={() => setLiked((v) => !v)}>
+        <Pressable
+          style={styles.action}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            toggleLike(post.id);
+          }}
+        >
           <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
+            name={post.liked ? 'heart' : 'heart-outline'}
             size={22}
-            color={liked ? Colors.heart : Colors.text}
+            color={post.liked ? Colors.heart : Colors.text}
           />
           <Text style={styles.count}>{post.likes}</Text>
         </Pressable>
-        <Pressable style={styles.action}>
+        <Pressable style={styles.action} onPress={() => router.push(`/post/${post.id}` as any)}>
           <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
           <Text style={styles.count}>{post.comments}</Text>
         </Pressable>
@@ -72,7 +81,7 @@ export function FeedPostCard({ post }: Props) {
           <Text style={styles.count}>{post.shares}</Text>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Avatar } from './Avatar';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { NewsItem } from '@/data/mockData';
@@ -9,8 +10,9 @@ type Props = {
 };
 
 export function NewsCard({ item }: Props) {
+  const router = useRouter();
   return (
-    <Pressable style={styles.card}>
+    <Pressable style={styles.card} onPress={() => router.push(`/news/${item.id}` as any)}>
       {item.image ? (
         <Image source={{ uri: item.image }} style={styles.cover} />
       ) : null}

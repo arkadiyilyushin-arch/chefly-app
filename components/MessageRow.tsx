@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Avatar } from './Avatar';
 import { Colors, Fonts, Spacing } from '@/constants/theme';
 import type { Message } from '@/data/mockData';
@@ -8,8 +9,9 @@ type Props = {
 };
 
 export function MessageRow({ message }: Props) {
+  const router = useRouter();
   return (
-    <Pressable style={styles.row}>
+    <Pressable style={styles.row} onPress={() => router.push(`/chat/${message.id}` as any)}>
       <View>
         <Avatar uri={message.avatar} size={54} />
         {message.online && <View style={styles.online} />}

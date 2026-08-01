@@ -4,11 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FeedPostCard } from '@/components/FeedPostCard';
 import { Logo } from '@/components/Logo';
 import { StoriesRow } from '@/components/StoriesRow';
+import { useFeed } from '@/context/FeedContext';
 import { Colors, Spacing } from '@/constants/theme';
-import { feedPosts, stories } from '@/data/mockData';
+import { stories } from '@/data/mockData';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { posts } = useFeed();
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -26,7 +28,7 @@ export default function HomeScreen() {
       </View>
 
       <FlatList
-        data={feedPosts}
+        data={posts}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={<StoriesRow stories={stories} />}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Chefly",
     "slug": "chefly",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "chefly",
@@ -20,7 +20,12 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "app.chefly.mobile",
-      "versionCode": 3
+      "versionCode": 4,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -35,6 +40,13 @@
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#2B95FF"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Chefly нужен доступ к фото, чтобы публиковать рецепты.",
+          "cameraPermission": "Chefly нужен доступ к камере, чтобы снимать блюда."
         }
       ]
     ],
