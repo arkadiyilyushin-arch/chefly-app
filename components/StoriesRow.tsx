@@ -6,17 +6,18 @@ import type { Story } from '@/data/mockData';
 
 type Props = {
   stories: Story[];
+  onOpen: (index: number) => void;
 };
 
-export function StoriesRow({ stories }: Props) {
+export function StoriesRow({ stories, onOpen }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
     >
-      {stories.map((story) => (
-        <Pressable key={story.id} style={styles.item}>
+      {stories.map((story, index) => (
+        <Pressable key={story.id} style={styles.item} onPress={() => onOpen(index)}>
           <View>
             <Avatar
               uri={story.avatar}

@@ -6,6 +6,14 @@ export type Story = {
   hasNew?: boolean;
 };
 
+export type PostComment = {
+  id: string;
+  author: string;
+  avatar: string;
+  text: string;
+  timeAgo: string;
+};
+
 export type FeedPost = {
   id: string;
   author: string;
@@ -14,10 +22,12 @@ export type FeedPost = {
   text: string;
   image: string;
   isVideo?: boolean;
-  likes: string;
-  comments: string;
-  shares: string;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
   liked?: boolean;
+  commentsList: PostComment[];
+  hidden?: boolean;
 };
 
 export type NewsItem = {
@@ -98,10 +108,33 @@ export const feedPosts: FeedPost[] = [
     text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры — рецепт в комментариях.',
     image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
     isVideo: true,
-    likes: '26K',
-    comments: '1K',
-    shares: '220',
+    likesCount: 26000,
+    commentsCount: 3,
+    sharesCount: 220,
     liked: true,
+    commentsList: [
+      {
+        id: 'c1',
+        author: 'Елена Росси',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
+        text: 'Выглядит как в ресторане! Сколько минут помешивал?',
+        timeAgo: '40 мин',
+      },
+      {
+        id: 'c2',
+        author: 'Шеф Марко',
+        avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
+        text: 'Тимьян в конце — правильный ход 🔥',
+        timeAgo: '25 мин',
+      },
+      {
+        id: 'c3',
+        author: 'Майя',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+        text: 'Сохранила, попробую на выходных!',
+        timeAgo: '10 мин',
+      },
+    ],
   },
   {
     id: '2',
@@ -110,9 +143,25 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '3ч назад',
     text: 'Воскресная выпечка на закваске 🍞 Гидратация 72%, холодный брожение 18 часов. Мякиш получился идеальный.',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=600&fit=crop',
-    likes: '18.4K',
-    comments: '842',
-    shares: '156',
+    likesCount: 18400,
+    commentsCount: 2,
+    sharesCount: 156,
+    commentsList: [
+      {
+        id: 'c4',
+        author: 'Кенджи',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
+        text: 'Какую муку используешь?',
+        timeAgo: '2ч',
+      },
+      {
+        id: 'c5',
+        author: 'София',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+        text: 'Корка просто космос 😍',
+        timeAgo: '1ч',
+      },
+    ],
   },
   {
     id: '3',
@@ -122,10 +171,26 @@ export const feedPosts: FeedPost[] = [
     text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны — ни больше, ни меньше.',
     image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=600&fit=crop',
     isVideo: true,
-    likes: '41K',
-    comments: '2.1K',
-    shares: '890',
+    likesCount: 41000,
+    commentsCount: 2,
+    sharesCount: 890,
     liked: true,
+    commentsList: [
+      {
+        id: 'c6',
+        author: 'Аиша Хан',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
+        text: 'Сковорода чугунная?',
+        timeAgo: '4ч',
+      },
+      {
+        id: 'c7',
+        author: 'Долапо Абдул',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
+        text: 'Классика. Снял на заметки.',
+        timeAgo: '3ч',
+      },
+    ],
   },
   {
     id: '4',
@@ -134,9 +199,18 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '8ч назад',
     text: 'Вечер домашней пасты! Свежая тальятелле с песто из черемши и кедровыми орехами. Кто ещё делает пасту сам?',
     image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=600&fit=crop',
-    likes: '9.2K',
-    comments: '534',
-    shares: '98',
+    likesCount: 9200,
+    commentsCount: 1,
+    sharesCount: 98,
+    commentsList: [
+      {
+        id: 'c8',
+        author: 'Елена Росси',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
+        text: 'Я! Без машинки, только скалка 💪',
+        timeAgo: '6ч',
+      },
+    ],
   },
 ];
 

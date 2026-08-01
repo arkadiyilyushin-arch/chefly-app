@@ -1,11 +1,27 @@
-import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { Avatar } from './Avatar';
 import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { FeedPost as FeedPostType } from '@/data/mockData';
+import { formatCount } from '@/utils/formatCount';
 
 type Props = {
   post: FeedPostType;
@@ -13,14 +29,68 @@ type Props = {
 
 export function FeedPostCard({ post }: Props) {
   const router = useRouter();
-  const { toggleLike } = useFeed();
+  const { toggleLike, sharePost, hidePost } = useFeed();
   const [expanded, setExpanded] = useState(false);
+  const lastTap = useRef(0);
+  const heart = useSharedValue(0);
+
   const long = post.text.length > 90;
   const preview = long && !expanded ? `${post.text.slice(0, 90).trim()}…` : post.text;
 
+  const heartStyle = useAnimatedStyle(() => ({
+    opacity: heart.value,
+    transform: [{ scale: 0.6 + heart.value * 0.6 }],
+  }));
+
+  function openPost() {
+    router.push(`/post/${post.id}` as any);
+  }
+
+  function onLike() {
+    toggleLike(post.id);
+  }
+
+  function onDoubleTapLike() {
+    const now = Date.now();
+    if (now - lastTap.current < 280) {
+      if (!post.liked) toggleLike(post.id);
+      heart.value = 0;
+      heart.value = withSequence(
+        withSpring(1, { damping: 8 }),
+        withTiming(0, { duration: 450 })
+      );
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  }
+
+  async function onShare() {
+    try {
+      await Share.share({
+        message: `${post.author}: ${post.text}\n\nСмотри в Chefly`,
+      });
+      sharePost(post.id);
+    } catch {
+      // cancelled
+    }
+  }
+
+  function onMenu() {
+    Alert.alert(post.author, undefined, [
+      { text: 'Открыть', onPress: openPost },
+      {
+        text: 'Скрыть пост',
+        style: 'destructive',
+        onPress: () => hidePost(post.id),
+      },
+      { text: 'Отмена', style: 'cancel' },
+    ]);
+  }
+
   return (
-    <Pressable style={styles.card} onPress={() => router.push(`/post/${post.id}` as any)}>
-      <View style={styles.header}>
+    <View style={styles.card}>
+      <Pressable style={styles.header} onPress={openPost}>
         <View style={styles.author}>
           <Avatar uri={post.avatar} size={42} />
           <View>
@@ -28,60 +98,56 @@ export function FeedPostCard({ post }: Props) {
             <Text style={styles.time}>{post.timeAgo}</Text>
           </View>
         </View>
-        <Pressable hitSlop={12} onPress={(e) => e.stopPropagation?.()}>
+        <Pressable hitSlop={12} onPress={onMenu}>
           <Ionicons name="ellipsis-vertical" size={18} color={Colors.textSecondary} />
         </Pressable>
-      </View>
+      </Pressable>
 
-      <Text style={styles.body}>
-        {preview}
-        {long && (
-          <Text
-            style={styles.more}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              setExpanded((v) => !v);
-            }}
-          >
-            {expanded ? ' Скрыть' : ' Ещё'}
-          </Text>
-        )}
-      </Text>
+      <Pressable onPress={openPost}>
+        <Text style={styles.body}>
+          {preview}
+          {long && (
+            <Text
+              style={styles.more}
+              onPress={() => setExpanded((v) => !v)}
+            >
+              {expanded ? ' Скрыть' : ' Ещё'}
+            </Text>
+          )}
+        </Text>
+      </Pressable>
 
-      <View style={styles.mediaWrap}>
+      <Pressable style={styles.mediaWrap} onPress={onDoubleTapLike} onLongPress={openPost}>
         <Image source={{ uri: post.image }} style={styles.media} />
         {post.isVideo && (
-          <View style={styles.playBtn}>
+          <Pressable style={styles.playBtn} onPress={openPost}>
             <Ionicons name="play" size={22} color="#fff" style={{ marginLeft: 3 }} />
-          </View>
+          </Pressable>
         )}
-      </View>
+        <Animated.View style={[styles.heartBurst, heartStyle]} pointerEvents="none">
+          <Ionicons name="heart" size={72} color="#fff" />
+        </Animated.View>
+      </Pressable>
 
       <View style={styles.actions}>
-        <Pressable
-          style={styles.action}
-          onPress={(e) => {
-            e.stopPropagation?.();
-            toggleLike(post.id);
-          }}
-        >
+        <Pressable style={styles.action} onPress={onLike}>
           <Ionicons
             name={post.liked ? 'heart' : 'heart-outline'}
             size={22}
             color={post.liked ? Colors.heart : Colors.text}
           />
-          <Text style={styles.count}>{post.likes}</Text>
+          <Text style={styles.count}>{formatCount(post.likesCount)}</Text>
         </Pressable>
-        <Pressable style={styles.action} onPress={() => router.push(`/post/${post.id}` as any)}>
+        <Pressable style={styles.action} onPress={openPost}>
           <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
-          <Text style={styles.count}>{post.comments}</Text>
+          <Text style={styles.count}>{formatCount(post.commentsCount)}</Text>
         </Pressable>
-        <Pressable style={styles.action}>
+        <Pressable style={styles.action} onPress={onShare}>
           <Ionicons name="paper-plane-outline" size={20} color={Colors.text} />
-          <Text style={styles.count}>{post.shares}</Text>
+          <Text style={styles.count}>{formatCount(post.sharesCount)}</Text>
         </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -157,6 +223,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.5)',
+  },
+  heartBurst: {
+    position: 'absolute',
   },
   actions: {
     flexDirection: 'row',

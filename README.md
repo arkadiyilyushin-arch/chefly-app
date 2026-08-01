@@ -6,9 +6,9 @@ Share recipes, follow kitchen news, discuss on the forum, and message fellow coo
 
 ## Download APK
 
-**[Chefly-1.0.3.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.3/Chefly-1.0.3.apk)**
+**[Chefly-1.0.4.apk](https://github.com/arkadiyilyushin-arch/chefly-app/releases/download/v1.0.4/Chefly-1.0.4.apk)**
 
-Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.3) page.
+Also on the [Releases](https://github.com/arkadiyilyushin-arch/chefly-app/releases/tag/v1.0.4) page.
 
 ## Features
 

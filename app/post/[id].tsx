@@ -1,24 +1,33 @@
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
+import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { formatCount } from '@/utils/formatCount';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getPost, toggleLike } = useFeed();
+  const { getPost, toggleLike, addComment, sharePost } = useFeed();
+  const { user } = useAuth();
   const post = getPost(id);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [draft, setDraft] = useState('');
 
   if (!post) {
     return (
@@ -31,17 +40,46 @@ export default function PostDetailScreen() {
     );
   }
 
+  async function onShare() {
+    if (!post) return;
+    try {
+      await Share.share({
+        message: `${post.author}: ${post.text}\n\nСмотри в Chefly`,
+      });
+      sharePost(post.id);
+    } catch {
+      // cancelled
+    }
+  }
+
+  function sendComment() {
+    if (!user || !post) return;
+    const text = draft.trim();
+    if (!text) return;
+    addComment(post.id, {
+      author: user.name,
+      avatar: user.avatar,
+      text,
+    });
+    setDraft('');
+  }
+
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.screen, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={styles.topBar}>
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={26} color={Colors.text} />
         </Pressable>
         <Text style={styles.topTitle}>Публикация</Text>
-        <View style={styles.iconBtn} />
+        <Pressable onPress={onShare} style={styles.iconBtn}>
+          <Ionicons name="share-outline" size={22} color={Colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Avatar uri={post.avatar} size={48} />
           <View style={{ flex: 1 }}>
@@ -68,19 +106,51 @@ export default function PostDetailScreen() {
               size={24}
               color={post.liked ? Colors.heart : Colors.text}
             />
-            <Text style={styles.count}>{post.likes}</Text>
+            <Text style={styles.count}>{formatCount(post.likesCount)}</Text>
           </Pressable>
           <View style={styles.action}>
             <Ionicons name="chatbubble-outline" size={22} color={Colors.text} />
-            <Text style={styles.count}>{post.comments}</Text>
+            <Text style={styles.count}>{formatCount(post.commentsCount)}</Text>
           </View>
-          <View style={styles.action}>
+          <Pressable style={styles.action} onPress={onShare}>
             <Ionicons name="paper-plane-outline" size={22} color={Colors.text} />
-            <Text style={styles.count}>{post.shares}</Text>
-          </View>
+            <Text style={styles.count}>{formatCount(post.sharesCount)}</Text>
+          </Pressable>
         </View>
+
+        <Text style={styles.commentsTitle}>Комментарии</Text>
+        {post.commentsList.length === 0 ? (
+          <Text style={styles.noComments}>Пока нет комментариев — напишите первый</Text>
+        ) : (
+          post.commentsList.map((c) => (
+            <View key={c.id} style={styles.comment}>
+              <Avatar uri={c.avatar} size={36} />
+              <View style={styles.commentBody}>
+                <View style={styles.commentTop}>
+                  <Text style={styles.commentAuthor}>{c.author}</Text>
+                  <Text style={styles.commentTime}>{c.timeAgo}</Text>
+                </View>
+                <Text style={styles.commentText}>{c.text}</Text>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
-    </View>
+
+      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <TextInput
+          style={styles.input}
+          placeholder="Написать комментарий..."
+          placeholderTextColor={Colors.textMuted}
+          value={draft}
+          onChangeText={setDraft}
+          multiline
+        />
+        <Pressable style={styles.send} onPress={sendComment}>
+          <Ionicons name="send" size={18} color="#fff" />
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -180,6 +250,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xl,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   action: {
     flexDirection: 'row',
@@ -190,5 +261,84 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.text,
+  },
+  commentsTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 17,
+    color: Colors.text,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  noComments: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.lg,
+  },
+  comment: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  commentBody: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  commentTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 8,
+  },
+  commentAuthor: {
+    fontFamily: Fonts.semibold,
+    fontSize: 13,
+    color: Colors.text,
+    flexShrink: 1,
+  },
+  commentTime: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  commentText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.text,
+  },
+  composer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  input: {
+    flex: 1,
+    minHeight: 42,
+    maxHeight: 110,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  send: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
