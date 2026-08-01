@@ -63,6 +63,7 @@ function RootNavigator() {
         <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
         <Stack.Screen name="chef/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="cook/[id]" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="reels" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: 'modal', headerShown: true, title: 'О Chefly' }}

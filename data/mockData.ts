@@ -188,7 +188,7 @@ export const feedPosts: FeedPost[] = [
     author: 'Долапо Абдул',
     avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
     timeAgo: '1ч назад',
-    text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры.',
+    text: 'Ризотто с лесными грибами — спасибо @Елена Росси за идею с тимьяном. Долго варил до кремовой текстуры.',
     image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
@@ -302,7 +302,7 @@ export const feedPosts: FeedPost[] = [
     author: 'Шеф Марко',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
     timeAgo: '5ч назад',
-    text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны.',
+    text: 'Обжаренные гребешки с лимонным соусом. Челлендж недели — отметьте @Шеф Марко, когда повторите.',
     image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=600&fit=crop',
     tags: ['быстро', 'ужин'],
     isVideo: true,

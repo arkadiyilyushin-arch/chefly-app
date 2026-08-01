@@ -1,4 +1,5 @@
-import { Image, StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { CachedImage } from './CachedImage';
 import { Colors } from '@/constants/theme';
 
 type Props = {
@@ -27,13 +28,14 @@ export function Avatar({ uri, size = 44, style, ring, ringColor = Colors.primary
         style,
       ]}
     >
-      <Image
-        source={{ uri }}
+      <CachedImage
+        uri={uri}
         style={{
           width: inner,
           height: inner,
           borderRadius: inner / 2,
         }}
+        contentFit="cover"
       />
     </View>
   );

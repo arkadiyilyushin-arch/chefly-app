@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Avatar } from './Avatar';
 import { MediaCarousel } from './MediaCarousel';
+import { MentionText } from './MentionText';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
@@ -28,12 +29,28 @@ export function FeedPostCard({ post, active = false }: Props) {
   const router = useRouter();
   const { user } = useAuth();
   const { toggleLike, sharePost, hidePost, repostPost } = useFeed();
-  const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
+  const {
+    isFollowing,
+    toggleFollow,
+    isSaved,
+    toggleSave,
+    collections,
+    addToCollection,
+    muteAuthor,
+    showLessOfAuthor,
+    joinChallenge,
+    isInChallenge,
+    getChallengeCount,
+    getRating,
+  } = useSocial();
   const [expanded, setExpanded] = useState(false);
   const lastTap = useRef(0);
   const heart = useSharedValue(0);
   const following = isFollowing(post.authorId);
   const saved = isSaved(post.id);
+  const inChallenge = isInChallenge(post.id);
+  const challengeCount = getChallengeCount(post.id);
+  const rating = getRating(post.id);
 
   const long = post.text.length > 90;
   const preview = long && !expanded ? `${post.text.slice(0, 90).trim()}…` : post.text;
@@ -100,6 +117,21 @@ export function FeedPostCard({ post, active = false }: Props) {
     ]);
   }
 
+  function onSaveMenu() {
+    const title = post.recipe?.title ?? post.text.slice(0, 40);
+    Alert.alert('В избранное', 'Куда сохранить?', [
+      {
+        text: 'Только закладка',
+        onPress: () => toggleSave(post.id, title),
+      },
+      ...collections.map((c) => ({
+        text: c.name,
+        onPress: () => addToCollection(c.id, post.id),
+      })),
+      { text: 'Отмена', style: 'cancel' as const },
+    ]);
+  }
+
   function onMenu() {
     Alert.alert(post.author, undefined, [
       { text: 'Открыть', onPress: openPost },
@@ -109,10 +141,19 @@ export function FeedPostCard({ post, active = false }: Props) {
         onPress: () => toggleFollow(post.authorId, post.author),
       },
       {
-        text: saved ? 'Убрать из избранного' : 'В избранное',
-        onPress: () => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40)),
+        text: saved ? 'Убрать из избранного' : 'В избранное / коллекцию',
+        onPress: () => (saved ? toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40)) : onSaveMenu()),
       },
       { text: 'Приготовить тоже', onPress: onRepost },
+      {
+        text: 'Показывать меньше такого',
+        onPress: () => showLessOfAuthor(post.authorId),
+      },
+      {
+        text: 'Скрыть автора',
+        style: 'destructive',
+        onPress: () => muteAuthor(post.authorId),
+      },
       {
         text: 'Скрыть пост',
         style: 'destructive',
@@ -156,18 +197,19 @@ export function FeedPostCard({ post, active = false }: Props) {
       </View>
 
       <Pressable onPress={openPost}>
-        <Text style={styles.body}>
-          {preview}
-          {long && (
-            <Text style={styles.more} onPress={() => setExpanded((v) => !v)}>
-              {expanded ? ' Скрыть' : ' Ещё'}
-            </Text>
-          )}
-        </Text>
+        <MentionText text={preview} style={styles.body} />
+        {long && (
+          <Text style={styles.more} onPress={() => setExpanded((v) => !v)}>
+            {expanded ? 'Скрыть' : 'Ещё'}
+          </Text>
+        )}
         {post.recipe && (
           <View style={styles.recipeChip}>
             <Ionicons name="restaurant-outline" size={14} color={Colors.primary} />
             <Text style={styles.recipeChipText}>{post.recipe.title}</Text>
+            {rating ? (
+              <Text style={styles.recipeChipText}> · {rating}★</Text>
+            ) : null}
           </View>
         )}
         {!!post.tags?.length && (
@@ -180,6 +222,20 @@ export function FeedPostCard({ post, active = false }: Props) {
           </View>
         )}
       </Pressable>
+
+      {post.recipe ? (
+        <Pressable
+          style={[styles.challenge, inChallenge && styles.challengeOn]}
+          onPress={() => joinChallenge(post.id)}
+        >
+          <Ionicons name="flame" size={16} color={inChallenge ? '#fff' : Colors.primary} />
+          <Text style={[styles.challengeText, inChallenge && styles.challengeTextOn]}>
+            {inChallenge
+              ? `В челлендже · ${challengeCount} готовят`
+              : `Приготовь за неделю · ${challengeCount || 12}`}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.mediaWrap}>
         <MediaCarousel
@@ -216,7 +272,11 @@ export function FeedPostCard({ post, active = false }: Props) {
         </Pressable>
         <Pressable
           style={[styles.action, { marginLeft: 'auto' }]}
-          onPress={() => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40))}
+          onPress={() =>
+            saved
+              ? toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40))
+              : onSaveMenu()
+          }
         >
           <Ionicons
             name={saved ? 'bookmark' : 'bookmark-outline'}
@@ -299,7 +359,22 @@ const styles = StyleSheet.create({
   more: {
     fontFamily: Fonts.semibold,
     color: Colors.primary,
+    marginBottom: Spacing.sm,
   },
+  challenge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primarySoft,
+    marginBottom: Spacing.md,
+  },
+  challengeOn: { backgroundColor: Colors.primary },
+  challengeText: { fontFamily: Fonts.semibold, fontSize: 12, color: Colors.primary },
+  challengeTextOn: { color: '#fff' },
   recipeChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',

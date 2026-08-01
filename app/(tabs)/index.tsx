@@ -30,6 +30,9 @@ import {
   rankForYou,
   type FeedFilterId,
 } from '@/utils/feedRank';
+import { matchesKitchen } from '@/utils/mentions';
+
+const KITCHEN_ITEMS = ['рис', 'яйца', 'курица', 'грибы', 'лимон', 'мука', 'томаты', 'сыр'];
 
 type Tab = 'foryou' | 'following';
 
@@ -47,30 +50,56 @@ export default function HomeScreen() {
     toggleFollow,
     isFollowing,
     savedPostIds,
+    mutedAuthorIds,
+    lessAuthorIds,
+    prefs,
+    setPrefs,
   } = useSocial();
   const [tab, setTab] = useState<Tab>('foryou');
   const [filter, setFilter] = useState<FeedFilterId>('all');
+  const [kitchen, setKitchen] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
+  const [kitchenOpen, setKitchenOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [storyIndex, setStoryIndex] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const scoped = useMemo(() => {
     let list =
       tab === 'following' ? posts.filter((p) => followingIds.includes(p.authorId)) : posts;
+    list = list.filter((p) => !mutedAuthorIds.includes(p.authorId));
     list = list.filter((p) => matchesFilter(p, filter));
+    if (kitchen.length) {
+      list = list.filter((p) => matchesKitchen(p.recipe?.ingredients ?? [], kitchen));
+    }
     if (tab === 'foryou') {
-      // seenIds намеренно не участвуют в live-сортировке — иначе лента прыгает при скролле
       list = rankForYou(list, {
         preferredTags,
         seenIds: [],
         savedIds: savedPostIds,
       });
+      // «Показывать меньше» — опускаем авторов вниз, не выкидывая полностью
+      list = [...list].sort((a, b) => {
+        const al = lessAuthorIds.includes(a.authorId) ? 1 : 0;
+        const bl = lessAuthorIds.includes(b.authorId) ? 1 : 0;
+        return al - bl;
+      });
     }
     return list;
-  }, [posts, tab, followingIds, filter, preferredTags, savedPostIds]);
+  }, [
+    posts,
+    tab,
+    followingIds,
+    filter,
+    preferredTags,
+    savedPostIds,
+    mutedAuthorIds,
+    lessAuthorIds,
+    kitchen,
+  ]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -134,11 +163,20 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Logo size={44} />
         <View style={styles.headerActions}>
+          <Pressable style={styles.iconBtn} onPress={() => router.push('/reels' as any)}>
+            <Ionicons name="play-circle-outline" size={22} color={Colors.text} />
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={() => setKitchenOpen(true)}>
+            <Ionicons name="nutrition-outline" size={22} color={kitchen.length ? Colors.primary : Colors.text} />
+          </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => router.push('/favorites' as any)}>
             <Ionicons name="bookmark-outline" size={22} color={Colors.text} />
           </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => setSearchOpen(true)}>
             <Ionicons name="search" size={22} color={Colors.text} />
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={() => setPrefsOpen(true)}>
+            <Ionicons name="settings-outline" size={20} color={Colors.text} />
           </Pressable>
           <Pressable
             style={styles.iconBtn}
@@ -269,6 +307,85 @@ export default function HomeScreen() {
             contentContainerStyle={{ paddingBottom: 40, paddingTop: Spacing.md }}
           />
         </View>
+      </Modal>
+
+      <Modal visible={kitchenOpen} animationType="slide" transparent onRequestClose={() => setKitchenOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setKitchenOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Что на кухне?</Text>
+            <Text style={styles.emptyText}>Выберите продукты — покажем рецепты, где они есть</Text>
+            <View style={styles.kitchenWrap}>
+              {KITCHEN_ITEMS.map((item) => {
+                const on = kitchen.includes(item);
+                return (
+                  <Pressable
+                    key={item}
+                    style={[styles.chip, on && styles.chipOn, { marginBottom: 8 }]}
+                    onPress={() =>
+                      setKitchen((prev) =>
+                        on ? prev.filter((x) => x !== item) : [...prev, item]
+                      )
+                    }
+                  >
+                    <Text style={[styles.chipText, on && styles.chipTextOn]}>{item}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              style={styles.sheetBtn}
+              onPress={() => {
+                setKitchen([]);
+                setKitchenOpen(false);
+              }}
+            >
+              <Text style={styles.sheetBtnText}>
+                {kitchen.length ? 'Сбросить и закрыть' : 'Закрыть'}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={prefsOpen} animationType="slide" transparent onRequestClose={() => setPrefsOpen(false)}>
+        <Pressable style={styles.sheetBackdrop} onPress={() => setPrefsOpen(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Лента</Text>
+            <Pressable
+              style={styles.prefRow}
+              onPress={() => setPrefs({ muteByDefault: !prefs.muteByDefault })}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.prefTitle}>Без звука по умолчанию</Text>
+                <Text style={styles.prefDesc}>Видео стартуют в mute</Text>
+              </View>
+              <Ionicons
+                name={prefs.muteByDefault ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={Colors.primary}
+              />
+            </Pressable>
+            <Pressable
+              style={styles.prefRow}
+              onPress={() => setPrefs({ wifiOnlyAutoplay: !prefs.wifiOnlyAutoplay })}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.prefTitle}>Автоплей только по Wi‑Fi</Text>
+                <Text style={styles.prefDesc}>На мобильных данных видео на паузе</Text>
+              </View>
+              <Ionicons
+                name={prefs.wifiOnlyAutoplay ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={Colors.primary}
+              />
+            </Pressable>
+            <Pressable style={styles.sheetBtn} onPress={() => setPrefsOpen(false)}>
+              <Text style={styles.sheetBtnText}>Готово</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal visible={notifOpen} animationType="slide" transparent onRequestClose={() => setNotifOpen(false)}>
@@ -479,4 +596,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   sheetBtnText: { fontFamily: Fonts.semibold, color: '#fff', fontSize: 15 },
+  kitchenWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: Spacing.lg },
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  prefTitle: { fontFamily: Fonts.semibold, fontSize: 15, color: Colors.text },
+  prefDesc: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 });

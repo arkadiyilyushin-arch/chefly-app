@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   FlatList,
-  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -10,6 +9,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from 'react-native';
+import { CachedImage } from './CachedImage';
 import { PostVideo } from './PostVideo';
 import { Colors, Fonts, Radius } from '@/constants/theme';
 
@@ -47,7 +47,7 @@ export function MediaCarousel({ images, videoUrl, isVideo, active, onPressMedia 
   if (urls.length <= 1) {
     return (
       <Pressable style={styles.wrap} onPress={onPressMedia} onLayout={onLayout}>
-        {urls[0] ? <Image source={{ uri: urls[0] }} style={styles.media} /> : null}
+        {urls[0] ? <CachedImage uri={urls[0]} style={styles.media} contentFit="cover" /> : null}
       </Pressable>
     );
   }
@@ -66,7 +66,7 @@ export function MediaCarousel({ images, videoUrl, isVideo, active, onPressMedia 
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           renderItem={({ item }) => (
             <Pressable onPress={onPressMedia} style={{ width, height: '100%' }}>
-              <Image source={{ uri: item }} style={styles.media} />
+              <CachedImage uri={item} style={styles.media} contentFit="cover" />
             </Pressable>
           )}
         />

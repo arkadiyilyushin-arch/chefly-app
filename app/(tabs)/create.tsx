@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -19,7 +20,22 @@ import { useFeed } from '@/context/FeedContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { Recipe } from '@/data/mockData';
 
+const DRAFT_KEY = 'chefly.createDraft.v1';
+
 type Kind = 'recipe' | 'photo' | 'video';
+
+type Draft = {
+  kind: Kind;
+  text: string;
+  imageUri: string | null;
+  extraImages: string[];
+  selectedTags: string[];
+  recipeTitle: string;
+  cookTime: string;
+  servings: string;
+  ingredients: string;
+  steps: string;
+};
 
 const KINDS: { key: Kind; icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] = [
   {
@@ -60,6 +76,62 @@ export default function CreateScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const TAG_OPTIONS = ['быстро', 'завтрак', 'ужин', 'веган', 'выпечка'];
+
+  useEffect(() => {
+    (async () => {
+      const raw = await AsyncStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      try {
+        const d = JSON.parse(raw) as Draft;
+        setKind(d.kind ?? 'recipe');
+        setText(d.text ?? '');
+        setImageUri(d.imageUri ?? null);
+        setExtraImages(d.extraImages ?? []);
+        setSelectedTags(d.selectedTags ?? []);
+        setRecipeTitle(d.recipeTitle ?? '');
+        setCookTime(d.cookTime ?? '30');
+        setServings(d.servings ?? '2');
+        setIngredients(d.ingredients ?? '');
+        setSteps(d.steps ?? '');
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const draft: Draft = {
+      kind,
+      text,
+      imageUri,
+      extraImages,
+      selectedTags,
+      recipeTitle,
+      cookTime,
+      servings,
+      ingredients,
+      steps,
+    };
+    const t = setTimeout(() => {
+      void AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [
+    kind,
+    text,
+    imageUri,
+    extraImages,
+    selectedTags,
+    recipeTitle,
+    cookTime,
+    servings,
+    ingredients,
+    steps,
+  ]);
+
+  async function clearDraft() {
+    await AsyncStorage.removeItem(DRAFT_KEY);
+  }
 
   async function pickFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -157,6 +229,7 @@ export default function CreateScreen() {
       setRecipeTitle('');
       setIngredients('');
       setSteps('');
+      await clearDraft();
       router.replace('/(tabs)');
     } catch {
       Alert.alert('Ошибка', 'Не удалось опубликовать пост');
@@ -171,7 +244,10 @@ export default function CreateScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
-        <Text style={styles.title}>Создать</Text>
+        <View>
+          <Text style={styles.title}>Создать</Text>
+          {(text || imageUri) && <Text style={styles.draftHint}>Черновик сохранён</Text>}
+        </View>
         <Pressable
           style={[styles.postBtn, busy && styles.postBtnDisabled]}
           onPress={onPublish}
@@ -345,7 +421,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
   },
-  title: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.text },
+  title: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.text, textAlign: 'center' },
+  draftHint: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 2,
+  },
   postBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,

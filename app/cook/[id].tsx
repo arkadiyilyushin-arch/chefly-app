@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeed } from '@/context/FeedContext';
+import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 
 export default function CookModeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getPost } = useFeed();
+  const { rateRecipe, getRating } = useSocial();
   const post = getPost(id);
   const recipe = post?.recipe;
   const insets = useSafeAreaInsets();
@@ -16,6 +18,8 @@ export default function CookModeScreen() {
   const [step, setStep] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [stars, setStars] = useState(getRating(id) ?? 0);
 
   const stepSeconds = useMemo(() => {
     if (!recipe) return 180;
@@ -56,6 +60,35 @@ export default function CookModeScreen() {
   const current = recipe.steps[step];
   const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
   const ss = String(seconds % 60).padStart(2, '0');
+
+  if (done) {
+    return (
+      <View style={[styles.screen, styles.center, { paddingTop: insets.top, paddingBottom: insets.bottom + 16 }]}>
+        <Text style={styles.recipeTitle}>Получилось?</Text>
+        <Text style={styles.rateHint}>Оцените рецепт «{recipe.title}»</Text>
+        <View style={styles.stars}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Pressable
+              key={n}
+              onPress={() => {
+                setStars(n);
+                rateRecipe(id, n);
+              }}
+            >
+              <Ionicons
+                name={n <= stars ? 'star' : 'star-outline'}
+                size={36}
+                color={n <= stars ? '#F5A623' : Colors.textMuted}
+              />
+            </Pressable>
+          ))}
+        </View>
+        <Pressable style={styles.navBtnPrimary} onPress={() => router.back()}>
+          <Text style={styles.navPrimaryText}>{stars ? 'Сохранить оценку' : 'Закрыть'}</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }]}>
@@ -115,7 +148,7 @@ export default function CookModeScreen() {
           style={styles.navBtnPrimary}
           onPress={() => {
             if (step < total - 1) setStep((s) => s + 1);
-            else router.back();
+            else setDone(true);
           }}
         >
           <Text style={styles.navPrimaryText}>{step < total - 1 ? 'Далее' : 'Готово'}</Text>
@@ -224,4 +257,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   navPrimaryText: { fontFamily: Fonts.semibold, fontSize: 15, color: '#fff' },
+  rateHint: {
+    fontFamily: Fonts.regular,
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  stars: { flexDirection: 'row', gap: 10, marginBottom: Spacing.xl },
 });

@@ -4,14 +4,37 @@ import { ActivityIndicator, View } from 'react-native';
 import { AppNotification, chefs } from '@/data/mockData';
 import { Colors } from '@/constants/theme';
 
-const SOCIAL_KEY = 'chefly.social.v1';
-const CLOUD_KEY = 'chefly.cloud.engagement.v1';
+const SOCIAL_KEY = 'chefly.social.v2';
+const CLOUD_KEY = 'chefly.cloud.engagement.v2';
+
+export type Collection = {
+  id: string;
+  name: string;
+  postIds: string[];
+};
+
+export type Challenge = {
+  postId: string;
+  joined: boolean;
+  cookCount: number;
+};
+
+export type FeedPrefs = {
+  muteByDefault: boolean;
+  wifiOnlyAutoplay: boolean;
+};
 
 type SocialState = {
   followingIds: string[];
   savedPostIds: string[];
   notifications: AppNotification[];
   cloudSyncedAt: number | null;
+  collections: Collection[];
+  mutedAuthorIds: string[];
+  lessAuthorIds: string[];
+  challenges: Challenge[];
+  ratings: Record<string, number>;
+  prefs: FeedPrefs;
 };
 
 type SocialContextValue = {
@@ -20,14 +43,38 @@ type SocialContextValue = {
   notifications: AppNotification[];
   unreadCount: number;
   cloudSyncedAt: number | null;
+  collections: Collection[];
+  mutedAuthorIds: string[];
+  lessAuthorIds: string[];
+  challenges: Challenge[];
+  ratings: Record<string, number>;
+  prefs: FeedPrefs;
   isFollowing: (authorId: string) => boolean;
   toggleFollow: (authorId: string, authorName: string) => void;
   isSaved: (postId: string) => boolean;
   toggleSave: (postId: string, postTitle: string) => void;
+  addToCollection: (collectionId: string, postId: string) => void;
+  removeFromCollection: (collectionId: string, postId: string) => void;
+  createCollection: (name: string) => void;
+  muteAuthor: (authorId: string) => void;
+  showLessOfAuthor: (authorId: string) => void;
+  unmuteAuthor: (authorId: string) => void;
+  joinChallenge: (postId: string) => void;
+  isInChallenge: (postId: string) => boolean;
+  getChallengeCount: (postId: string) => number;
+  rateRecipe: (postId: string, stars: number) => void;
+  getRating: (postId: string) => number | undefined;
+  setPrefs: (patch: Partial<FeedPrefs>) => void;
   pushNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'timeAgo' | 'read'>) => void;
   markAllRead: () => void;
   syncCloud: () => Promise<void>;
 };
+
+const defaultCollections: Collection[] = [
+  { id: 'col_breakfast', name: 'Завтраки', postIds: [] },
+  { id: 'col_guests', name: 'Гости', postIds: [] },
+  { id: 'col_quick', name: 'Быстрое', postIds: [] },
+];
 
 const empty: SocialState = {
   followingIds: ['chef_elena', 'chef_marco'],
@@ -44,6 +91,15 @@ const empty: SocialState = {
     },
   ],
   cloudSyncedAt: null,
+  collections: defaultCollections,
+  mutedAuthorIds: [],
+  lessAuthorIds: [],
+  challenges: [
+    { postId: '3', joined: false, cookCount: 128 },
+    { postId: '1', joined: false, cookCount: 64 },
+  ],
+  ratings: {},
+  prefs: { muteByDefault: true, wifiOnlyAutoplay: false },
 };
 
 const SocialContext = createContext<SocialContextValue | null>(null);
@@ -59,8 +115,16 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         AsyncStorage.getItem(CLOUD_KEY),
       ]);
       let next = empty;
-      if (local) next = { ...empty, ...(JSON.parse(local) as SocialState) };
-      // Merge cloud engagement (saved + following) as shared vault on device
+      if (local) {
+        const parsed = JSON.parse(local) as Partial<SocialState>;
+        next = {
+          ...empty,
+          ...parsed,
+          collections: parsed.collections?.length ? parsed.collections : defaultCollections,
+          prefs: { ...empty.prefs, ...(parsed.prefs ?? {}) },
+          challenges: parsed.challenges?.length ? parsed.challenges : empty.challenges,
+        };
+      }
       if (cloud) {
         const c = JSON.parse(cloud) as Partial<SocialState>;
         next = {
@@ -87,6 +151,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
       notifications: state.notifications,
       unreadCount: state.notifications.filter((n) => !n.read).length,
       cloudSyncedAt: state.cloudSyncedAt,
+      collections: state.collections,
+      mutedAuthorIds: state.mutedAuthorIds,
+      lessAuthorIds: state.lessAuthorIds,
+      challenges: state.challenges,
+      ratings: state.ratings,
+      prefs: state.prefs,
       isFollowing: (authorId) => state.followingIds.includes(authorId),
       toggleFollow: (authorId, authorName) => {
         const on = state.followingIds.includes(authorId);
@@ -114,6 +184,12 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         const savedPostIds = on
           ? state.savedPostIds.filter((id) => id !== postId)
           : [...state.savedPostIds, postId];
+        const collections = on
+          ? state.collections.map((c) => ({
+              ...c,
+              postIds: c.postIds.filter((id) => id !== postId),
+            }))
+          : state.collections;
         const note: AppNotification = {
           id: `n_${Date.now()}`,
           type: 'save',
@@ -127,8 +203,98 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         void persist({
           ...state,
           savedPostIds,
+          collections,
           notifications: [note, ...state.notifications].slice(0, 50),
         });
+      },
+      addToCollection: (collectionId, postId) => {
+        const collections = state.collections.map((c) =>
+          c.id === collectionId && !c.postIds.includes(postId)
+            ? { ...c, postIds: [...c.postIds, postId] }
+            : c
+        );
+        const savedPostIds = state.savedPostIds.includes(postId)
+          ? state.savedPostIds
+          : [...state.savedPostIds, postId];
+        void persist({ ...state, collections, savedPostIds });
+      },
+      removeFromCollection: (collectionId, postId) => {
+        const collections = state.collections.map((c) =>
+          c.id === collectionId ? { ...c, postIds: c.postIds.filter((id) => id !== postId) } : c
+        );
+        void persist({ ...state, collections });
+      },
+      createCollection: (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        void persist({
+          ...state,
+          collections: [
+            ...state.collections,
+            { id: `col_${Date.now()}`, name: trimmed, postIds: [] },
+          ],
+        });
+      },
+      muteAuthor: (authorId) => {
+        if (state.mutedAuthorIds.includes(authorId)) return;
+        void persist({
+          ...state,
+          mutedAuthorIds: [...state.mutedAuthorIds, authorId],
+        });
+      },
+      showLessOfAuthor: (authorId) => {
+        if (state.lessAuthorIds.includes(authorId)) return;
+        void persist({
+          ...state,
+          lessAuthorIds: [...state.lessAuthorIds, authorId],
+        });
+      },
+      unmuteAuthor: (authorId) => {
+        void persist({
+          ...state,
+          mutedAuthorIds: state.mutedAuthorIds.filter((id) => id !== authorId),
+          lessAuthorIds: state.lessAuthorIds.filter((id) => id !== authorId),
+        });
+      },
+      joinChallenge: (postId) => {
+        const existing = state.challenges.find((c) => c.postId === postId);
+        let challenges: Challenge[];
+        if (existing) {
+          if (existing.joined) return;
+          challenges = state.challenges.map((c) =>
+            c.postId === postId ? { ...c, joined: true, cookCount: c.cookCount + 1 } : c
+          );
+        } else {
+          challenges = [...state.challenges, { postId, joined: true, cookCount: 1 }];
+        }
+        const note: AppNotification = {
+          id: `n_${Date.now()}`,
+          type: 'post',
+          title: 'Вы в челлендже',
+          body: 'Приготовьте рецепт до конца недели',
+          timeAgo: 'сейчас',
+          read: false,
+          createdAt: Date.now(),
+          postId,
+        };
+        void persist({
+          ...state,
+          challenges,
+          notifications: [note, ...state.notifications].slice(0, 50),
+        });
+      },
+      isInChallenge: (postId) => !!state.challenges.find((c) => c.postId === postId)?.joined,
+      getChallengeCount: (postId) =>
+        state.challenges.find((c) => c.postId === postId)?.cookCount ?? 0,
+      rateRecipe: (postId, stars) => {
+        void persist({
+          ...state,
+          ratings: { ...state.ratings, [postId]: stars },
+        });
+      },
+      getRating: (postId) => state.ratings[postId],
+      setPrefs: (patch) => {
+        void persist({ ...state, prefs: { ...state.prefs, ...patch } });
       },
       pushNotification: (n) => {
         const note: AppNotification = {
@@ -154,6 +320,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
         const cloudPayload = {
           followingIds: state.followingIds,
           savedPostIds: state.savedPostIds,
+          collections: state.collections,
           cloudSyncedAt: syncedAt,
           chefsKnown: chefs.map((c) => c.id),
         };
