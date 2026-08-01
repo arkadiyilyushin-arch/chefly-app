@@ -1,13 +1,17 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { Recipe } from '@/data/mockData';
 
 type Props = {
   recipe: Recipe;
+  postId?: string;
 };
 
-export function RecipeBlock({ recipe }: Props) {
+export function RecipeBlock({ recipe, postId }: Props) {
+  const router = useRouter();
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{recipe.title}</Text>
@@ -25,6 +29,13 @@ export function RecipeBlock({ recipe }: Props) {
           <Text style={styles.metaText}>{recipe.difficulty}</Text>
         </View>
       </View>
+
+      {postId ? (
+        <Pressable style={styles.cookBtn} onPress={() => router.push(`/cook/${postId}` as any)}>
+          <Ionicons name="flame-outline" size={18} color="#fff" />
+          <Text style={styles.cookBtnText}>Режим готовки</Text>
+        </Pressable>
+      ) : null}
 
       <Text style={styles.section}>Ингредиенты</Text>
       {recipe.ingredients.map((item) => (
@@ -83,6 +94,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primaryDark,
   },
+  cookBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+    paddingVertical: 12,
+    marginBottom: Spacing.lg,
+  },
+  cookBtnText: { fontFamily: Fonts.semibold, fontSize: 14, color: '#fff' },
   section: {
     fontFamily: Fonts.semibold,
     fontSize: 14,

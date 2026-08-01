@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,23 +14,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
-import { PostVideo } from '@/components/PostVideo';
+import { MediaCarousel } from '@/components/MediaCarousel';
 import { RecipeBlock } from '@/components/RecipeBlock';
 import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { formatCount } from '@/utils/formatCount';
+import { mediaUrls } from '@/utils/feedRank';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getPost, toggleLike, addComment, sharePost } = useFeed();
+  const { getPost, toggleLike, addComment, sharePost, toggleCommentLike, repostPost } = useFeed();
   const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
   const { user } = useAuth();
   const post = getPost(id);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [draft, setDraft] = useState('');
+  const [replyTo, setReplyTo] = useState<string | null>(null);
 
   if (!post) {
     return (
@@ -65,9 +66,11 @@ export default function PostDetailScreen() {
     addComment(post!.id, {
       author: user.name,
       avatar: user.avatar,
-      text,
+      text: replyTo ? `@${replyTo} ${text.replace(new RegExp(`^@${replyTo}\\s*`), '')}` : text,
+      replyTo: replyTo ?? undefined,
     });
     setDraft('');
+    setReplyTo(null);
   }
 
   return (
@@ -86,12 +89,27 @@ export default function PostDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+        {post.repostOf ? (
+          <Pressable
+            style={styles.repostBanner}
+            onPress={() => router.push(`/post/${post.repostOf!.id}` as any)}
+          >
+            <Ionicons name="repeat" size={14} color={Colors.primary} />
+            <Text style={styles.repostText}>по рецепту {post.repostOf.author}</Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.header}>
-          <Avatar uri={post.avatar} size={48} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{post.author}</Text>
-            <Text style={styles.time}>{post.timeAgo}</Text>
-          </View>
+          <Pressable
+            style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 }}
+            onPress={() => router.push(`/chef/${post.authorId}` as any)}
+          >
+            <Avatar uri={post.avatar} size={48} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{post.author}</Text>
+              <Text style={styles.time}>{post.timeAgo}</Text>
+            </View>
+          </Pressable>
           <Pressable
             style={[styles.followBtn, following && styles.followBtnOn]}
             onPress={() => toggleFollow(post.authorId, post.author)}
@@ -105,14 +123,15 @@ export default function PostDetailScreen() {
         <Text style={styles.body}>{post.text}</Text>
 
         <View style={styles.mediaWrap}>
-          {post.isVideo && post.videoUrl ? (
-            <PostVideo uri={post.videoUrl} />
-          ) : (
-            <Image source={{ uri: post.image }} style={styles.media} />
-          )}
+          <MediaCarousel
+            images={mediaUrls(post)}
+            isVideo={post.isVideo}
+            videoUrl={post.videoUrl}
+            active
+          />
         </View>
 
-        {post.recipe ? <RecipeBlock recipe={post.recipe} /> : null}
+        {post.recipe ? <RecipeBlock recipe={post.recipe} postId={post.id} /> : null}
 
         <View style={styles.actions}>
           <Pressable style={styles.action} onPress={() => toggleLike(post.id)}>
@@ -127,6 +146,20 @@ export default function PostDetailScreen() {
             <Ionicons name="chatbubble-outline" size={22} color={Colors.text} />
             <Text style={styles.count}>{formatCount(post.commentsCount)}</Text>
           </View>
+          <Pressable
+            style={styles.action}
+            onPress={async () => {
+              if (!user) return;
+              const created = await repostPost(post.id, {
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar,
+              });
+              if (created) router.replace(`/post/${created.id}` as any);
+            }}
+          >
+            <Ionicons name="repeat-outline" size={22} color={Colors.text} />
+          </Pressable>
           <Pressable style={styles.action} onPress={onShare}>
             <Ionicons name="paper-plane-outline" size={22} color={Colors.text} />
             <Text style={styles.count}>{formatCount(post.sharesCount)}</Text>
@@ -155,7 +188,30 @@ export default function PostDetailScreen() {
                   <Text style={styles.commentAuthor}>{c.author}</Text>
                   <Text style={styles.commentTime}>{c.timeAgo}</Text>
                 </View>
+                {c.replyTo ? <Text style={styles.replyTo}>ответ @{c.replyTo}</Text> : null}
                 <Text style={styles.commentText}>{c.text}</Text>
+                <View style={styles.commentActions}>
+                  <Pressable
+                    style={styles.commentAction}
+                    onPress={() => toggleCommentLike(post.id, c.id)}
+                  >
+                    <Ionicons
+                      name={c.liked ? 'heart' : 'heart-outline'}
+                      size={14}
+                      color={c.liked ? Colors.heart : Colors.textMuted}
+                    />
+                    <Text style={styles.commentActionText}>{c.likesCount ?? 0}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.commentAction}
+                    onPress={() => {
+                      setReplyTo(c.author);
+                      setDraft(`@${c.author} `);
+                    }}
+                  >
+                    <Text style={styles.commentActionText}>Ответить</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           ))
@@ -163,17 +219,25 @@ export default function PostDetailScreen() {
       </ScrollView>
 
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput
-          style={styles.input}
-          placeholder="Написать комментарий..."
-          placeholderTextColor={Colors.textMuted}
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-        />
-        <Pressable style={styles.send} onPress={sendComment}>
-          <Ionicons name="send" size={18} color="#fff" />
-        </Pressable>
+        {replyTo ? (
+          <Pressable style={styles.replyChip} onPress={() => setReplyTo(null)}>
+            <Text style={styles.replyChipText}>ответ @{replyTo}</Text>
+            <Ionicons name="close" size={14} color={Colors.primary} />
+          </Pressable>
+        ) : null}
+        <View style={styles.composerRow}>
+          <TextInput
+            style={styles.input}
+            placeholder={replyTo ? `Ответ @${replyTo}` : 'Написать комментарий...'}
+            placeholderTextColor={Colors.textMuted}
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+          />
+          <Pressable style={styles.send} onPress={sendComment}>
+            <Ionicons name="send" size={18} color="#fff" />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -193,6 +257,14 @@ const styles = StyleSheet.create({
   },
   topTitle: { fontFamily: Fonts.bold, fontSize: 17, color: Colors.text },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  repostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: 8,
+  },
+  repostText: { fontFamily: Fonts.medium, fontSize: 12, color: Colors.primary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,10 +298,9 @@ const styles = StyleSheet.create({
     aspectRatio: 4 / 3,
     backgroundColor: Colors.border,
   },
-  media: { width: '100%', height: '100%' },
   actions: {
     flexDirection: 'row',
-    gap: Spacing.xl,
+    gap: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
@@ -270,17 +341,36 @@ const styles = StyleSheet.create({
   },
   commentAuthor: { fontFamily: Fonts.semibold, fontSize: 13, color: Colors.text, flexShrink: 1 },
   commentTime: { fontFamily: Fonts.regular, fontSize: 11, color: Colors.textMuted },
+  replyTo: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
   commentText: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: Colors.text },
+  commentActions: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  commentAction: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  commentActionText: { fontFamily: Fonts.medium, fontSize: 12, color: Colors.textMuted },
   composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     backgroundColor: Colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
+    gap: 8,
   },
+  replyChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+  },
+  replyChipText: { fontFamily: Fonts.medium, fontSize: 12, color: Colors.primary },
+  composerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   input: {
     flex: 1,
     minHeight: 42,

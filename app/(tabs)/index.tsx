@@ -1,48 +1,76 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type ViewToken,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar } from '@/components/Avatar';
 import { FeedPostCard } from '@/components/FeedPostCard';
+import { FeedSkeleton } from '@/components/FeedSkeleton';
 import { Logo } from '@/components/Logo';
 import { StoriesRow } from '@/components/StoriesRow';
 import { StoryViewer } from '@/components/StoryViewer';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { stories } from '@/data/mockData';
+import { chefs, stories } from '@/data/mockData';
+import {
+  FEED_FILTERS,
+  matchesFilter,
+  rankForYou,
+  type FeedFilterId,
+} from '@/utils/feedRank';
 
 type Tab = 'foryou' | 'following';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { posts, refresh, loading } = useFeed();
-  const { followingIds, notifications, unreadCount, markAllRead, syncCloud, cloudSyncedAt } =
-    useSocial();
+  const { posts, refresh, loading, preferredTags, markSeen } = useFeed();
+  const {
+    followingIds,
+    notifications,
+    unreadCount,
+    markAllRead,
+    syncCloud,
+    cloudSyncedAt,
+    toggleFollow,
+    isFollowing,
+    savedPostIds,
+  } = useSocial();
   const [tab, setTab] = useState<Tab>('foryou');
+  const [filter, setFilter] = useState<FeedFilterId>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const [storyIndex, setStoryIndex] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const scoped = useMemo(() => {
-    if (tab === 'following') {
-      return posts.filter((p) => followingIds.includes(p.authorId));
+    let list =
+      tab === 'following' ? posts.filter((p) => followingIds.includes(p.authorId)) : posts;
+    list = list.filter((p) => matchesFilter(p, filter));
+    if (tab === 'foryou') {
+      // seenIds намеренно не участвуют в live-сортировке — иначе лента прыгает при скролле
+      list = rankForYou(list, {
+        preferredTags,
+        seenIds: [],
+        savedIds: savedPostIds,
+      });
     }
-    return posts;
-  }, [posts, tab, followingIds]);
+    return list;
+  }, [posts, tab, followingIds, filter, preferredTags, savedPostIds]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -51,15 +79,55 @@ export default function HomeScreen() {
       (p) =>
         p.author.toLowerCase().includes(q) ||
         p.text.toLowerCase().includes(q) ||
-        (p.recipe?.title.toLowerCase().includes(q) ?? false)
+        (p.recipe?.title.toLowerCase().includes(q) ?? false) ||
+        (p.tags ?? []).some((t) => t.includes(q))
     );
   }, [scoped, query]);
+
+  const suggestedChefs = useMemo(
+    () => chefs.filter((c) => !followingIds.includes(c.id)).slice(0, 4),
+    [followingIds]
+  );
 
   async function onRefresh() {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   }
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const first = viewableItems.find((v) => v.isViewable && v.item?.id);
+    if (first?.item?.id) {
+      setActiveId(first.item.id as string);
+      markSeen(first.item.id as string);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+
+  const renderFilters = useCallback(
+    () => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+      >
+        {FEED_FILTERS.map((f) => {
+          const on = filter === f.id;
+          return (
+            <Pressable
+              key={f.id}
+              style={[styles.chip, on && styles.chipOn]}
+              onPress={() => setFilter(f.id)}
+            >
+              <Text style={[styles.chipText, on && styles.chipTextOn]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    ),
+    [filter]
+  );
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -103,37 +171,70 @@ export default function HomeScreen() {
       </View>
 
       {loading && posts.length === 0 ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={Colors.primary} />
+        <FeedSkeleton />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
           ListHeaderComponent={
-            tab === 'foryou' ? (
-              <StoriesRow stories={stories} onOpen={(index) => setStoryIndex(index)} />
-            ) : (
-              <Text style={styles.followingHint}>
-                Посты шефов, на которых вы подписаны
-              </Text>
-            )
+            <View>
+              {tab === 'foryou' ? (
+                <StoriesRow stories={stories} onOpen={(index) => setStoryIndex(index)} />
+              ) : (
+                <Text style={styles.followingHint}>
+                  Посты шефов, на которых вы подписаны
+                </Text>
+              )}
+              {renderFilters()}
+            </View>
           }
-          renderItem={({ item }) => <FeedPostCard post={item} />}
+          renderItem={({ item }) => <FeedPostCard post={item} active={activeId === item.id} />}
           contentContainerStyle={{ paddingBottom: 110 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
           }
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>
-                {tab === 'following' ? 'Пока пусто' : 'Ничего не найдено'}
-              </Text>
-              <Text style={styles.emptyText}>
-                {tab === 'following'
-                  ? 'Подпишитесь на шефов в ленте «Для вас»'
-                  : 'Попробуйте другой запрос'}
-              </Text>
-            </View>
+            tab === 'following' ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>Лента подписок пуста</Text>
+                <Text style={styles.emptyText}>Подпишитесь на шефов — вот кого стоит открыть</Text>
+                <View style={styles.suggestList}>
+                  {suggestedChefs.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      style={styles.suggestCard}
+                      onPress={() => router.push(`/chef/${c.id}` as any)}
+                    >
+                      <Avatar uri={c.avatar} size={52} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.suggestName}>{c.name}</Text>
+                        <Text style={styles.suggestBio} numberOfLines={2}>
+                          {c.bio}
+                        </Text>
+                      </View>
+                      <Pressable
+                        style={[styles.miniFollow, isFollowing(c.id) && styles.miniFollowOn]}
+                        onPress={() => toggleFollow(c.id, c.name)}
+                      >
+                        <Text
+                          style={[styles.miniFollowText, isFollowing(c.id) && styles.miniFollowTextOn]}
+                        >
+                          {isFollowing(c.id) ? '✓' : '+'}
+                        </Text>
+                      </Pressable>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>Ничего не найдено</Text>
+                <Text style={styles.emptyText}>Смените фильтр или поисковый запрос</Text>
+              </View>
+            )
           }
         />
       )}
@@ -251,16 +352,66 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: Colors.primarySoft },
   tabText: { fontFamily: Fonts.medium, fontSize: 14, color: Colors.textSecondary },
   tabTextActive: { color: Colors.primary, fontFamily: Fonts.semibold },
+  filters: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginRight: 8,
+  },
+  chipOn: {
+    backgroundColor: Colors.primarySoft,
+    borderColor: Colors.primary,
+  },
+  chipText: { fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary },
+  chipTextOn: { color: Colors.primary, fontFamily: Fonts.semibold },
   followingHint: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
     fontFamily: Fonts.regular,
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  empty: { alignItems: 'center', paddingTop: 40, gap: 6 },
+  empty: { alignItems: 'center', paddingTop: 28, paddingHorizontal: Spacing.lg, gap: 6 },
   emptyTitle: { fontFamily: Fonts.semibold, fontSize: 16, color: Colors.text },
-  emptyText: { fontFamily: Fonts.regular, fontSize: 14, color: Colors.textSecondary },
+  emptyText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  suggestList: { width: '100%', gap: 10, marginTop: Spacing.lg },
+  suggestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  suggestName: { fontFamily: Fonts.semibold, fontSize: 14, color: Colors.text },
+  suggestBio: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  miniFollow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniFollowOn: { backgroundColor: Colors.primarySoft },
+  miniFollowText: { fontFamily: Fonts.bold, color: '#fff', fontSize: 18 },
+  miniFollowTextOn: { color: Colors.primary },
   modal: { flex: 1, backgroundColor: Colors.background },
   searchBar: {
     flexDirection: 'row',

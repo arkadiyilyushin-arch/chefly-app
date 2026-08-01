@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -6,14 +7,20 @@ import { Colors, Radius } from '@/constants/theme';
 
 type Props = {
   uri: string;
-  poster?: string;
+  active?: boolean;
 };
 
-export function PostVideo({ uri }: Props) {
+export function PostVideo({ uri, active = false }: Props) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
+    p.muted = true;
   });
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+
+  useEffect(() => {
+    if (active) player.play();
+    else player.pause();
+  }, [active, player]);
 
   return (
     <View style={styles.wrap}>
@@ -25,7 +32,7 @@ export function PostVideo({ uri }: Props) {
         fullscreenOptions={{ enable: true }}
       />
       <Pressable
-        style={styles.play}
+        style={[styles.play, active && isPlaying && styles.playHidden]}
         onPress={() => {
           if (isPlaying) player.pause();
           else player.play();
@@ -66,5 +73,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.45)',
+  },
+  playHidden: {
+    opacity: 0.35,
   },
 });

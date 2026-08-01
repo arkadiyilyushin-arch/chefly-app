@@ -56,6 +56,10 @@ export default function CreateScreen() {
   const [servings, setServings] = useState('2');
   const [ingredients, setIngredients] = useState('');
   const [steps, setSteps] = useState('');
+  const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const TAG_OPTIONS = ['быстро', 'завтрак', 'ужин', 'веган', 'выпечка'];
 
   async function pickFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -70,7 +74,10 @@ export default function CreateScreen() {
       aspect: [4, 3],
     });
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      if (!imageUri) setImageUri(uri);
+      else if (extraImages.length < 4) setExtraImages((prev) => [...prev, uri]);
+      else setImageUri(uri);
     }
   }
 
@@ -127,12 +134,15 @@ export default function CreateScreen() {
     }
     setBusy(true);
     try {
+      const images = [imageUri, ...extraImages];
       await addPost({
         authorId: user.id,
         author: user.name,
         avatar: user.avatar,
         text: text.trim(),
         image: imageUri,
+        images: images.length > 1 ? images : undefined,
+        tags: selectedTags.length ? selectedTags : undefined,
         isVideo: kind === 'video',
         videoUrl:
           kind === 'video'
@@ -142,6 +152,8 @@ export default function CreateScreen() {
       });
       setText('');
       setImageUri(null);
+      setExtraImages([]);
+      setSelectedTags([]);
       setRecipeTitle('');
       setIngredients('');
       setSteps('');
@@ -188,11 +200,34 @@ export default function CreateScreen() {
         />
 
         {imageUri ? (
-          <View style={styles.previewWrap}>
-            <Image source={{ uri: imageUri }} style={styles.preview} />
-            <Pressable style={styles.removePhoto} onPress={() => setImageUri(null)}>
-              <Ionicons name="close" size={18} color="#fff" />
-            </Pressable>
+          <View>
+            <View style={styles.previewWrap}>
+              <Image source={{ uri: imageUri }} style={styles.preview} />
+              <Pressable
+                style={styles.removePhoto}
+                onPress={() => {
+                  if (extraImages.length) {
+                    setImageUri(extraImages[0]);
+                    setExtraImages(extraImages.slice(1));
+                  } else setImageUri(null);
+                }}
+              >
+                <Ionicons name="close" size={18} color="#fff" />
+              </Pressable>
+            </View>
+            {extraImages.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {extraImages.map((uri) => (
+                  <Image key={uri} source={{ uri }} style={styles.thumb} />
+                ))}
+              </ScrollView>
+            )}
+            {kind !== 'video' && extraImages.length < 4 && (
+              <Pressable style={styles.addMore} onPress={pickFromLibrary}>
+                <Ionicons name="add" size={18} color={Colors.primary} />
+                <Text style={styles.addMoreText}>Ещё фото в карусель</Text>
+              </Pressable>
+            )}
           </View>
         ) : (
           <View style={styles.pickRow}>
@@ -206,6 +241,26 @@ export default function CreateScreen() {
             </Pressable>
           </View>
         )}
+
+        <Text style={styles.sectionLabel}>Теги</Text>
+        <View style={styles.tagRow}>
+          {TAG_OPTIONS.map((t) => {
+            const on = selectedTags.includes(t);
+            return (
+              <Pressable
+                key={t}
+                style={[styles.tagChip, on && styles.tagChipOn]}
+                onPress={() =>
+                  setSelectedTags((prev) =>
+                    on ? prev.filter((x) => x !== t) : [...prev, t]
+                  )
+                }
+              >
+                <Text style={[styles.tagChipText, on && styles.tagChipTextOn]}>{t}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <Text style={styles.sectionLabel}>Тип публикации</Text>
         <View style={styles.options}>
@@ -342,6 +397,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    marginRight: 8,
+    backgroundColor: Colors.border,
+  },
+  addMore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.xl,
+  },
+  addMoreText: { fontFamily: Fonts.medium, fontSize: 13, color: Colors.primary },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.xl },
+  tagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tagChipOn: { backgroundColor: Colors.primarySoft, borderColor: Colors.primary },
+  tagChipText: { fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary },
+  tagChipTextOn: { color: Colors.primary, fontFamily: Fonts.semibold },
   sectionLabel: {
     fontFamily: Fonts.semibold,
     fontSize: 14,

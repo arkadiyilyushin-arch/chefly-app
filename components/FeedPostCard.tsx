@@ -1,13 +1,5 @@
 import { useRef, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Pressable,
-  Share,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -18,20 +10,24 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Avatar } from './Avatar';
-import { PostVideo } from './PostVideo';
+import { MediaCarousel } from './MediaCarousel';
+import { useAuth } from '@/context/AuthContext';
 import { useFeed } from '@/context/FeedContext';
 import { useSocial } from '@/context/SocialContext';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import type { FeedPost as FeedPostType } from '@/data/mockData';
 import { formatCount } from '@/utils/formatCount';
+import { mediaUrls } from '@/utils/feedRank';
 
 type Props = {
   post: FeedPostType;
+  active?: boolean;
 };
 
-export function FeedPostCard({ post }: Props) {
+export function FeedPostCard({ post, active = false }: Props) {
   const router = useRouter();
-  const { toggleLike, sharePost, hidePost } = useFeed();
+  const { user } = useAuth();
+  const { toggleLike, sharePost, hidePost, repostPost } = useFeed();
   const { isFollowing, toggleFollow, isSaved, toggleSave } = useSocial();
   const [expanded, setExpanded] = useState(false);
   const lastTap = useRef(0);
@@ -49,6 +45,10 @@ export function FeedPostCard({ post }: Props) {
 
   function openPost() {
     router.push(`/post/${post.id}` as any);
+  }
+
+  function openChef() {
+    router.push(`/chef/${post.authorId}` as any);
   }
 
   function onLike() {
@@ -82,9 +82,28 @@ export function FeedPostCard({ post }: Props) {
     }
   }
 
+  function onRepost() {
+    if (!user) return;
+    Alert.alert('Приготовить тоже?', `Опубликовать репост рецепта «${post.recipe?.title ?? post.author}»`, [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Опубликовать',
+        onPress: async () => {
+          const created = await repostPost(post.id, {
+            id: user.id,
+            name: user.name,
+            avatar: user.avatar,
+          });
+          if (created) router.push(`/post/${created.id}` as any);
+        },
+      },
+    ]);
+  }
+
   function onMenu() {
     Alert.alert(post.author, undefined, [
       { text: 'Открыть', onPress: openPost },
+      { text: 'Профиль шефа', onPress: openChef },
       {
         text: following ? 'Отписаться' : 'Подписаться',
         onPress: () => toggleFollow(post.authorId, post.author),
@@ -93,6 +112,7 @@ export function FeedPostCard({ post }: Props) {
         text: saved ? 'Убрать из избранного' : 'В избранное',
         onPress: () => toggleSave(post.id, post.recipe?.title ?? post.text.slice(0, 40)),
       },
+      { text: 'Приготовить тоже', onPress: onRepost },
       {
         text: 'Скрыть пост',
         style: 'destructive',
@@ -104,8 +124,15 @@ export function FeedPostCard({ post }: Props) {
 
   return (
     <View style={styles.card}>
+      {post.repostOf ? (
+        <Pressable style={styles.repostBanner} onPress={() => router.push(`/post/${post.repostOf!.id}` as any)}>
+          <Ionicons name="repeat" size={14} color={Colors.primary} />
+          <Text style={styles.repostText}>по рецепту {post.repostOf.author}</Text>
+        </Pressable>
+      ) : null}
+
       <View style={styles.header}>
-        <Pressable style={styles.author} onPress={openPost}>
+        <Pressable style={styles.author} onPress={openChef}>
           <Avatar uri={post.avatar} size={42} />
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{post.author}</Text>
@@ -143,18 +170,29 @@ export function FeedPostCard({ post }: Props) {
             <Text style={styles.recipeChipText}>{post.recipe.title}</Text>
           </View>
         )}
+        {!!post.tags?.length && (
+          <View style={styles.tags}>
+            {post.tags.slice(0, 3).map((t) => (
+              <View key={t} style={styles.tag}>
+                <Text style={styles.tagText}>{t}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </Pressable>
 
-      <Pressable style={styles.mediaWrap} onPress={onDoubleTapLike}>
-        {post.isVideo && post.videoUrl ? (
-          <PostVideo uri={post.videoUrl} />
-        ) : (
-          <Image source={{ uri: post.image }} style={styles.media} />
-        )}
+      <View style={styles.mediaWrap}>
+        <MediaCarousel
+          images={mediaUrls(post)}
+          isVideo={post.isVideo}
+          videoUrl={post.videoUrl}
+          active={active}
+          onPressMedia={onDoubleTapLike}
+        />
         <Animated.View style={[styles.heartBurst, heartStyle]} pointerEvents="none">
           <Ionicons name="heart" size={72} color="#fff" />
         </Animated.View>
-      </Pressable>
+      </View>
 
       <View style={styles.actions}>
         <Pressable style={styles.action} onPress={onLike}>
@@ -168,6 +206,9 @@ export function FeedPostCard({ post }: Props) {
         <Pressable style={styles.action} onPress={openPost}>
           <Ionicons name="chatbubble-outline" size={20} color={Colors.text} />
           <Text style={styles.count}>{formatCount(post.commentsCount)}</Text>
+        </Pressable>
+        <Pressable style={styles.action} onPress={onRepost}>
+          <Ionicons name="repeat-outline" size={20} color={Colors.text} />
         </Pressable>
         <Pressable style={styles.action} onPress={onShare}>
           <Ionicons name="paper-plane-outline" size={20} color={Colors.text} />
@@ -201,6 +242,13 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
+  repostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  repostText: { fontFamily: Fonts.medium, fontSize: 12, color: Colors.primary },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -261,13 +309,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.full,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   recipeChipText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
     color: Colors.primaryDark,
   },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
+  tag: {
+    backgroundColor: Colors.background,
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tagText: { fontFamily: Fonts.medium, fontSize: 11, color: Colors.textSecondary },
   mediaWrap: {
     borderRadius: Radius.md,
     overflow: 'hidden',
@@ -276,22 +334,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  media: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
   heartBurst: {
     position: 'absolute',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xl,
+    gap: Spacing.lg,
     marginTop: Spacing.md,
   },
   action: {

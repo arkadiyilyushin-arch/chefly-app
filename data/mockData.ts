@@ -4,6 +4,9 @@ export type Story = {
   avatar: string;
   isMe?: boolean;
   hasNew?: boolean;
+  postId?: string;
+  image?: string;
+  caption?: string;
 };
 
 export type PostComment = {
@@ -12,6 +15,9 @@ export type PostComment = {
   avatar: string;
   text: string;
   timeAgo: string;
+  likesCount?: number;
+  liked?: boolean;
+  replyTo?: string;
 };
 
 export type Recipe = {
@@ -31,6 +37,8 @@ export type FeedPost = {
   timeAgo: string;
   text: string;
   image: string;
+  images?: string[];
+  tags?: string[];
   isVideo?: boolean;
   videoUrl?: string;
   recipe?: Recipe;
@@ -41,6 +49,7 @@ export type FeedPost = {
   saved?: boolean;
   commentsList: PostComment[];
   hidden?: boolean;
+  repostOf?: { id: string; author: string; authorId: string };
 };
 
 export type ChefProfile = {
@@ -125,35 +134,50 @@ export const stories: Story[] = [
     name: 'Я',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
     isMe: true,
+    caption: 'Ваша история на кухне',
   },
   {
     id: '1',
-    name: 'Синди',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
+    name: 'Елена',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
     hasNew: true,
+    postId: '2',
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=1200&fit=crop',
+    caption: 'Рецепт дня: хлеб на закваске',
   },
   {
     id: '2',
-    name: 'Абдулла',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+    name: 'Марко',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
     hasNew: true,
+    postId: '3',
+    image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=1200&fit=crop',
+    caption: 'Гребешки за 15 минут',
   },
   {
     id: '3',
-    name: 'Майя',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+    name: 'Долапо',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
     hasNew: true,
+    postId: '1',
+    image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=1200&fit=crop',
+    caption: 'Грибное ризотто — смотри рецепт',
   },
   {
     id: '4',
-    name: 'Кенджи',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
+    name: 'Аиша',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop',
     hasNew: true,
+    postId: '4',
+    image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=1200&fit=crop',
+    caption: 'Тальятелле с песто из черемши',
   },
   {
     id: '5',
     name: 'София',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&h=1200&fit=crop',
+    caption: 'Утренний бранч на кухне',
   },
 ];
 
@@ -166,6 +190,12 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '1ч назад',
     text: 'Ризотто с лесными грибами, пармезаном и свежим тимьяном. Долго варил до кремовой текстуры.',
     image: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1432139555190-58575bd5c8a0?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=600&fit=crop',
+    ],
+    tags: ['ужин'],
     isVideo: true,
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     recipe: {
@@ -198,6 +228,7 @@ export const feedPosts: FeedPost[] = [
         avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
         text: 'Выглядит как в ресторане! Сколько минут помешивал?',
         timeAgo: '40 мин',
+        likesCount: 12,
       },
       {
         id: 'c2',
@@ -205,6 +236,8 @@ export const feedPosts: FeedPost[] = [
         avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop',
         text: 'Тимьян в конце — правильный ход 🔥',
         timeAgo: '25 мин',
+        likesCount: 8,
+        replyTo: 'Елена Росси',
       },
       {
         id: 'c3',
@@ -212,6 +245,7 @@ export const feedPosts: FeedPost[] = [
         avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
         text: 'Сохранила, попробую на выходных!',
         timeAgo: '10 мин',
+        likesCount: 3,
       },
     ],
   },
@@ -223,6 +257,12 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '3ч назад',
     text: 'Воскресная выпечка на закваске 🍞 Гидратация 72%, холодный брожение 18 часов.',
     image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=600&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?w=800&h=600&fit=crop',
+    ],
+    tags: ['выпечка', 'завтрак'],
     recipe: {
       title: 'Хлеб на закваске',
       cookTimeMin: 60,
@@ -264,6 +304,7 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '5ч назад',
     text: 'Обжаренные гребешки с лимонным соусом и микрозеленью. По 90 секунд с каждой стороны.',
     image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&h=600&fit=crop',
+    tags: ['быстро', 'ужин'],
     isVideo: true,
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     recipe: {
@@ -308,6 +349,11 @@ export const feedPosts: FeedPost[] = [
     timeAgo: '8ч назад',
     text: 'Вечер домашней пасты! Свежая тальятелле с песто из черемши и кедровыми орехами.',
     image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=600&fit=crop',
+    images: [
+      'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=800&h=600&fit=crop',
+    ],
+    tags: ['ужин', 'веган'],
     recipe: {
       title: 'Тальятелле с песто',
       cookTimeMin: 50,
